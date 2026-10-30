@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>__MAP_TITLE__</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.3/leaflet-maplibre-gl.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0f14;--panel:#12151d;--panel2:#1a1e2a;--border:rgba(255,255,255,0.08);--text:#e8eaf0;--muted:#7b8291;--accent:#E5FF01;--accent-dark:#9aa600}
+html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);font-family:'IBM Plex Sans',sans-serif;color:var(--text)}
+/* the MAP CANVAS is a light basemap (like Kin's Prospección map) so geography reads
+   clearly - only the control sidebar is dark. Don't swap the tile layer for a dark
+   one; that was the original complaint ("el mapa se ve gris/oscuro"). */
+#map{position:absolute;top:0;left:340px;right:0;bottom:0;background:#e5e3dd}
+#sidebar{position:absolute;top:0;left:0;bottom:0;width:340px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:400;overflow:hidden}
+.sb-head{padding:18px 18px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sb-head h1{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:3px}
+.sb-head p{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+.sb-body{flex:1;overflow-y:auto;padding:14px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.sb-body::-webkit-scrollbar{width:4px}
+.sb-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.stats-bar{display:flex;gap:6px;margin-bottom:16px}
+.stat-chip{flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:9px 6px;text-align:center}
+.stat-chip .num{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;color:var(--accent);display:block;white-space:nowrap}
+.stat-chip .lbl{font-size:8.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.section{margin-bottom:16px}
+.sec-title{font-size:9px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-family:'IBM Plex Mono',monospace}
+.chip-grid{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:10.5px;padding:5px 9px;border-radius:4px;border:1px solid var(--border);background:var(--panel2);color:var(--muted);cursor:pointer;transition:all .15s;font-family:'IBM Plex Mono',monospace;white-space:nowrap;user-select:none}
+.chip:hover{border-color:var(--accent);color:var(--text)}
+.chip.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+.chip.seg0.active{background:#E5FF01;border-color:#E5FF01;color:#000}
+.chip.seg1.active{background:#ff7c00;border-color:#ff7c00;color:#000}
+.chip.seg2.active{background:#38bdf8;border-color:#38bdf8;color:#000}
+.chip.seg3.active{background:#a78bfa;border-color:#a78bfa;color:#000}
+.fgroup{margin-bottom:12px}
+.flabel{font-size:10px;color:var(--muted);margin-bottom:5px;font-family:'IBM Plex Mono',monospace;display:flex;justify-content:space-between}
+.dd-wrap{position:relative}
+.dd-btn{width:100%;padding:7px 10px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:border-color .15s;user-select:none}
+.dd-btn:hover{border-color:rgba(229,255,1,.4)}
+.dd-btn.open{border-color:var(--accent)}
+.dd-arrow{font-size:8px;color:var(--muted);transition:transform .2s}
+.dd-btn.open .dd-arrow{transform:rotate(180deg)}
+.dd-panel{position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--panel2);border:1px solid var(--border);border-radius:6px;z-index:500;max-height:220px;overflow-y:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,.6);scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.dd-panel.open{display:block}
+.dd-search{padding:6px 8px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel2)}
+.dd-search input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px 7px;outline:none}
+.dd-search input:focus{border-color:var(--accent)}
+.dd-option{padding:6px 10px;font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:var(--muted);cursor:pointer;transition:background .1s;display:flex;align-items:center;gap:6px}
+.dd-option:hover{background:rgba(229,255,1,.08);color:var(--text)}
+.dd-option.selected{color:var(--accent)}
+.dd-option .chk{width:12px;height:12px;border:1px solid var(--border);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px}
+.dd-option.selected .chk{background:var(--accent);border-color:var(--accent);color:#000}
+.legend-row{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+.legend-swatch{width:22px;height:10px;border-radius:2px;flex-shrink:0;border:1px solid rgba(255,255,255,.15)}
+.legend-label{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+.ramp-bar{display:flex;height:12px;border-radius:3px;overflow:hidden;margin-bottom:5px;border:1px solid rgba(255,255,255,.12)}
+.ramp-seg{flex:1}
+.ramp-labels{display:flex;justify-content:space-between;font-size:8.5px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+.hist-wrap{margin-bottom:2px}
+.hist-caption{font-size:8.5px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:6px}
+.hist-track{position:relative;height:54px;display:flex;align-items:flex-end;gap:1px;margin-bottom:4px;padding:0 1px}
+.hist-bar{flex:1;background:rgba(255,255,255,.14);border-radius:1px 1px 0 0;min-height:1px;pointer-events:none}
+.hist-handles{position:absolute;inset:0;pointer-events:none}
+.hist-handle{position:absolute;top:-6px;bottom:0;width:3px;margin-left:-1.5px;cursor:ew-resize;pointer-events:auto}
+.hist-handle::after{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:10px;height:10px;border-radius:50%;background:inherit;border:2px solid var(--bg);box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.hist-handle::before{content:'';position:absolute;top:6px;bottom:0;left:50%;width:2px;transform:translateX(-50%);background:inherit;opacity:.55}
+.hist-range-lbl{display:flex;justify-content:space-between;font-size:8.5px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:10px}
+.break-inputs{display:flex;flex-wrap:wrap;gap:5px}
+.break-input-wrap{flex:1;min-width:64px}
+.break-input-label{display:flex;align-items:center;gap:3px;font-size:8px;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:2px}
+.break-input-label .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.break-input{width:100%;background:var(--panel2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px 5px;outline:none}
+.break-input:focus{border-color:var(--accent)}
+.reset-btn{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:3px 8px;border:1px solid var(--border);border-radius:3px;color:var(--muted);cursor:pointer;user-select:none}
+.reset-btn:hover{border-color:var(--accent);color:var(--accent)}
+.hex-tooltip{background:#111111 !important;border:1px solid rgba(255,255,255,.14) !important;border-radius:8px !important;padding:11px 14px !important;color:#f4f4f4 !important;font-family:'IBM Plex Sans',sans-serif !important;font-size:12px !important;min-width:210px !important;max-width:270px !important;box-shadow:0 8px 32px rgba(0,0,0,.7) !important}
+.hex-tooltip::before{display:none !important}
+.tt-title{font-weight:600;color:#E5FF01;margin-bottom:6px;font-size:13px;font-family:'IBM Plex Mono',monospace}
+.tt-row{display:flex;justify-content:space-between;gap:10px;font-size:10.5px;padding:2.5px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.tt-row:last-child{border-bottom:none}
+.tt-key{color:#8a8a8a;font-family:'IBM Plex Mono',monospace}
+.tt-val{font-weight:500;text-align:right}
+.leaflet-control-attribution{font-size:9px !important;background:rgba(255,255,255,.7) !important}
+.empty-note{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;padding:8px;background:var(--panel2);border-radius:6px;border:1px dashed rgba(255,255,255,.15)}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="sidebar">
+  <div class="sb-head">
+    <h1 id="map-title">__MAP_TITLE__</h1>
+    <p id="map-subtitle">Kin Analytics · Customer Potential</p>
+  </div>
+  <div class="sb-body">
+
+    <div class="stats-bar">
+      <div class="stat-chip"><span class="num" id="stat-total">0</span><span class="lbl">PDVs totales</span></div>
+      <div class="stat-chip"><span class="num" id="stat-visible">0</span><span class="lbl">Visibles</span></div>
+      <div class="stat-chip"><span class="num" id="stat-potential">0</span><span class="lbl">Pot. visible</span></div>
+    </div>
+
+    <div class="section">
+      <div class="sec-title">Ver por</div>
+      <div class="chip-grid">
+        <div class="chip active" id="mode-clients" onclick="setMode('clients')">Densidad de clientes</div>
+        <div class="chip" id="mode-potential" onclick="setMode('potential')">Densidad de potencial</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sec-title">Tamaño de hexágono</div>
+      <div class="chip-grid" id="res-chips"></div>
+    </div>
+
+    <div class="section">
+      <div class="sec-title">Filtros</div>
+
+      <div class="fgroup">
+        <div class="flabel">Segmento <span>(multi)</span></div>
+        <div class="chip-grid" id="seg-chips"></div>
+      </div>
+
+      <div class="fgroup">
+        <div class="flabel">Categoría prioritaria</div>
+        <div class="dd-wrap" id="dd-cat-wrap">
+          <div class="dd-btn" id="dd-cat-btn" onclick="toggleDD('cat')"><span id="dd-cat-label">Todas</span><span class="dd-arrow">▼</span></div>
+          <div class="dd-panel" id="dd-cat-panel">
+            <div class="dd-search"><input type="text" placeholder="Buscar…" oninput="filterDDOptions('cat',this.value)"></div>
+            <div id="dd-cat-options"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fgroup">
+        <div class="flabel">Ciudad</div>
+        <div class="dd-wrap" id="dd-city-wrap">
+          <div class="dd-btn" id="dd-city-btn" onclick="toggleDD('city')"><span id="dd-city-label">Todas</span><span class="dd-arrow">▼</span></div>
+          <div class="dd-panel" id="dd-city-panel">
+            <div class="dd-search"><input type="text" placeholder="Buscar…" oninput="filterDDOptions('city',this.value)"></div>
+            <div id="dd-city-options"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fgroup">
+        <div class="flabel">Subcanal</div>
+        <div class="dd-wrap" id="dd-sub-wrap">
+          <div class="dd-btn" id="dd-sub-btn" onclick="toggleDD('sub')"><span id="dd-sub-label">Todos</span><span class="dd-arrow">▼</span></div>
+          <div class="dd-panel" id="dd-sub-panel">
+            <div class="dd-search"><input type="text" placeholder="Buscar…" oninput="filterDDOptions('sub',this.value)"></div>
+            <div id="dd-sub-options"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fgroup">
+        <div class="flabel">GEC</div>
+        <div class="dd-wrap" id="dd-gec-wrap">
+          <div class="dd-btn" id="dd-gec-btn" onclick="toggleDD('gec')"><span id="dd-gec-label">Todos</span><span class="dd-arrow">▼</span></div>
+          <div class="dd-panel" id="dd-gec-panel">
+            <div class="dd-search"><input type="text" placeholder="Buscar…" oninput="filterDDOptions('gec',this.value)"></div>
+            <div id="dd-gec-options"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="sec-title" style="margin-bottom:0" id="breaks-title">Escala de color</div>
+        <div class="reset-btn" onclick="resetBreaks()">↺ Reset</div>
+      </div>
+      <div class="ramp-bar" id="ramp-bar"></div>
+      <div id="hex-sliders"></div>
+    </div>
+
+    <div class="section">
+      <div class="sec-title">Segmento (en el hover)</div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#E5FF01"></div><span class="legend-label">Very High</span></div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#ff7c00"></div><span class="legend-label">High</span></div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#38bdf8"></div><span class="legend-label">Moderate</span></div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#a78bfa"></div><span class="legend-label">Low</span></div>
+    </div>
+
+    <div class="section">
+      <div class="empty-note">Este mapa muestra únicamente densidad agregada por hexágono — no contiene la ubicación exacta de ningún PDV individual.</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const DATA = __MAP_DATA_JSON__;
+const SEG_COLORS = ["#E5FF01","#ff7c00","#38bdf8","#a78bfa"];
+// Conventional low->high heat scale: Kin yellow -> amber -> orange -> red -> maroon
+// (same progression as Kin's Prospección map, anchored on Kin's brand yellow)
+const RAMP = ["#E5FF01","#F2A900","#D6610A","#B72F15","#880030"];
+
+const state = {
+  res: DATA.resolutions.includes(8) ? 8 : DATA.resolutions[0],
+  mode: 'clients',
+  filters: { seg: null, city: null, sub: null, cat: null, gec: null },
+  breaks: {},
+};
+let map, hexLayerGroup, fullBounds;
+// focus: after a filter changes, fly to where the selection is (back to the full extent when cleared)
+let focusPending = false;
+let openDD = null;
+
+function fmtUC(v){
+  const av = Math.abs(v);
+  if (av >= 1e6) return (v/1e6).toFixed(1)+'M';
+  if (av >= 1e3) return (v/1e3).toFixed(1)+'K';
+  return Math.round(v).toLocaleString();
+}
+function fmtInt(v){ return Math.round(v).toLocaleString(); }
+
+function initBreaks(){
+  for (const res of DATA.resolutions){
+    const d = DATA.hexes[res].defaultBreaks;
+    state.breaks[res] = { n: [...d.n], pot: [...d.pot] };
+  }
+}
+
+function initMap(){
+  map = L.map('map', { zoomControl: true, attributionControl: true, preferCanvas: true });
+  // Basemap: OpenFreeMap (OpenStreetMap vector tiles, light "positron" style) --
+  // free, no API key, no account, no quota (user, 2026-10-27: no Mapbox, nothing
+  // that depends on a keyed API). CARTO now needs a key and OSM's raster tile
+  // server forbids this usage pattern. Rendered by MapLibre GL inside Leaflet
+  // (maplibre-gl-leaflet), so the hex layers and controls stay plain Leaflet.
+  // OSM data is ODbL: the attribution below must stay visible.
+  L.control.attribution({ prefix: false }).addTo(map);
+  // the GL layer reads map.getCenter() when added: create it now, add it after the view is set (below)
+  const basemap = L.maplibreGL({
+    style: 'https://tiles.openfreemap.org/styles/positron',
+    attribution: '<a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+    preserveDrawingBuffer: true  // so headless screenshots (slide 14) capture the WebGL canvas
+  });
+  hexLayerGroup = L.layerGroup().addTo(map);
+
+  // fit bounds to the coarsest resolution's hex boundaries (cheapest, covers the same extent)
+  const firstRes = DATA.resolutions[0];
+  const allPts = [];
+  for (const poly of DATA.hexes[firstRes].polys) for (const pt of poly) allPts.push(pt);
+  if (allPts.length) { fullBounds = L.latLngBounds(allPts); map.fitBounds(fullBounds, { padding: [20,20] }); }
+  else map.setView([0,0], 2);
+  basemap.addTo(map);
+}
+
+function passes(setOrNull, idx){ return !setOrNull || setOrNull.has(idx); }
+
+function computeHexAgg(){
+  const f = DATA.facts[state.res];
+  const agg = new Map();
+  for (let i=0;i<f.hex.length;i++){
+    if(!passes(state.filters.seg, f.seg[i])) continue;
+    if(!passes(state.filters.city, f.city[i])) continue;
+    if(!passes(state.filters.sub, f.sub[i])) continue;
+    if(!passes(state.filters.cat, f.cat[i])) continue;
+    if(!passes(state.filters.gec, f.gec[i])) continue;
+    const h = f.hex[i];
+    if(!agg.has(h)) agg.set(h, {n:0,pot:0,cur:0,bySeg:[{n:0,pot:0,cur:0},{n:0,pot:0,cur:0},{n:0,pot:0,cur:0},{n:0,pot:0,cur:0}]});
+    const a = agg.get(h);
+    a.n += f.n[i]; a.pot += f.pot[i]; a.cur += f.cur[i];
+    const bs = a.bySeg[f.seg[i]]; bs.n += f.n[i]; bs.pot += f.pot[i]; bs.cur += f.cur[i];
+  }
+  return agg;
+}
+
+function colorFor(value, breaks){
+  for (let i=0;i<breaks.length;i++) if (value <= breaks[i]) return RAMP[i];
+  return RAMP[RAMP.length-1];
+}
+
+function currentBreaks(){ return state.mode === 'clients' ? state.breaks[state.res].n : state.breaks[state.res].pot; }
+
+let hoverTooltip = null;
+
+function showTooltip(layer, hexIdx, agg){
+  const seg = DATA.lookups.segments;
+  const pctOfTotal = DATA.totals.potential ? (agg.pot / DATA.totals.potential * 100) : 0;
+  let rows = `<div class="tt-row"><span class="tt-key">PDVs</span><span class="tt-val">${fmtInt(agg.n)}</span></div>`;
+  for (let s=0;s<seg.length;s++){
+    if (!agg.bySeg[s].n) continue;
+    rows += `<div class="tt-row"><span class="tt-key" style="color:${SEG_COLORS[s]}">${seg[s]}</span><span class="tt-val">${fmtInt(agg.bySeg[s].n)}</span></div>`;
+  }
+  rows += `<div class="tt-row"><span class="tt-key">Potencial UC/mes</span><span class="tt-val">${fmtUC(agg.pot)}</span></div>`;
+  rows += `<div class="tt-row"><span class="tt-key">% del potencial total</span><span class="tt-val">${pctOfTotal.toFixed(1)}%</span></div>`;
+  rows += `<div class="tt-row"><span class="tt-key">Ventas actuales UC/mes</span><span class="tt-val">${fmtUC(agg.cur)}</span></div>`;
+  const html = `<div class="tt-title">Hexágono</div>${rows}`;
+  layer.bindTooltip(html, { className: 'hex-tooltip', sticky: true, direction: 'top' }).openTooltip();
+}
+
+function repaint(){
+  const agg = computeHexAgg();
+  hexLayerGroup.clearLayers();
+  const hexes = DATA.hexes[state.res];
+  const breaks = currentBreaks();
+  let visiblePdvs = 0, visiblePot = 0;
+  const focusPts = [];
+
+  for (const [hexIdx, a] of agg.entries()){
+    if (a.n <= 0) continue;
+    visiblePdvs += a.n; visiblePot += a.pot;
+    const metricVal = state.mode === 'clients' ? a.n : a.pot;
+    const color = colorFor(metricVal, breaks);
+    const poly = L.polygon(hexes.polys[hexIdx], { color: '#7a5200', weight: 0.75, fillColor: color, fillOpacity: 0.78, opacity: 0.55 });
+    poly.on('mouseover', function(){ this.setStyle({ weight: 2.5, color: '#111111', opacity: 1 }); showTooltip(this, hexIdx, a); });
+    poly.on('mouseout', function(){ this.setStyle({ weight: 0.75, color: '#7a5200', opacity: 0.55 }); this.closeTooltip(); });
+    poly.addTo(hexLayerGroup);
+    if (focusPending) focusPts.push(...hexes.polys[hexIdx]);
+  }
+  if (focusPending){
+    focusPending = false;
+    const filtered = Object.values(state.filters).some(Boolean);
+    const target = filtered && focusPts.length ? L.latLngBounds(focusPts) : fullBounds;
+    if (target) map.flyToBounds(target, { padding: [40,40], maxZoom: 12, duration: 0.8 });
+  }
+
+  document.getElementById('stat-total').textContent = fmtInt(DATA.totals.pdvs);
+  document.getElementById('stat-visible').textContent = fmtInt(visiblePdvs);
+  document.getElementById('stat-potential').textContent = fmtUC(visiblePot);
+  renderRamp();
+  renderSliders(agg);
+}
+
+function renderRamp(){
+  const bar = document.getElementById('ramp-bar');
+  bar.innerHTML = RAMP.map(c => `<div class="ramp-seg" style="background:${c}"></div>`).join('');
+}
+
+// ---- color-scale editor: fixed histogram of hex values (so the axis never
+// shifts under you) + draggable break markers + exact numeric inputs. The
+// domain (min/max shown at each end) is the dataset-wide range for the
+// current mode+resolution, computed once and cached - it does NOT depend on
+// the current breaks or filters, which is what made the old linked sliders
+// feel like moving one changed the others (their range was being
+// recalculated from the breaks on every edit).
+const domainCache = {};
+function getDomain(mode, res){
+  const key = mode + '_' + res;
+  if (domainCache[key]) return domainCache[key];
+  const f = DATA.facts[res];
+  const totals = new Map();
+  for (let i=0;i<f.hex.length;i++){
+    const h = f.hex[i];
+    const v = mode === 'clients' ? f.n[i] : f.pot[i];
+    totals.set(h, (totals.get(h) || 0) + v);
+  }
+  const vals = [...totals.values()];
+  const min = vals.length ? Math.min(...vals) : 0;
+  const max = vals.length ? Math.max(...vals) : 10;
+  domainCache[key] = { min, max, span: Math.max(max - min, 1) };
+  return domainCache[key];
+}
+
+let dragFrame = null;
+function scheduleRepaint(){
+  if (dragFrame) return;
+  dragFrame = requestAnimationFrame(() => { dragFrame = null; repaint(); });
+}
+
+function renderSliders(agg){
+  const breaks = currentBreaks();
+  const domain = getDomain(state.mode, state.res);
+  const fmt = state.mode === 'clients' ? fmtInt : fmtUC;
+  const container = document.getElementById('hex-sliders');
+  container.innerHTML = '';
+
+  // histogram of the hexes actually on screen right now (post-filter), so the
+  // shape you see is exactly the data you're trying to split into colors
+  const NBUCKETS = 26;
+  const counts = new Array(NBUCKETS).fill(0);
+  for (const a of agg.values()){
+    if (a.n <= 0) continue;
+    const v = state.mode === 'clients' ? a.n : a.pot;
+    let idx = Math.floor((v - domain.min) / domain.span * NBUCKETS);
+    if (idx < 0) idx = 0; if (idx >= NBUCKETS) idx = NBUCKETS - 1;
+    counts[idx]++;
+  }
+  const maxCount = Math.max(...counts, 1);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'hist-wrap';
+  wrap.innerHTML = `
+    <div class="hist-caption">Distribución de hexágonos visibles — arrastra un punto o escribe el corte exacto</div>
+    <div class="hist-track" id="hist-track">
+      ${counts.map(c => `<div class="hist-bar" style="height:${Math.max(2, Math.round(c/maxCount*100))}%"></div>`).join('')}
+      <div class="hist-handles" id="hist-handles"></div>
+    </div>
+    <div class="hist-range-lbl"><span>min ${fmt(domain.min)}</span><span>max ${fmt(domain.max)}</span></div>
+    <div class="break-inputs" id="break-inputs"></div>`;
+  container.appendChild(wrap);
+
+  const track = wrap.querySelector('#hist-track');
+  const handlesEl = wrap.querySelector('#hist-handles');
+  const inputsEl = wrap.querySelector('#break-inputs');
+
+  breaks.forEach((val, i) => {
+    const pct = Math.min(100, Math.max(0, (val - domain.min) / domain.span * 100));
+    const color = RAMP[i] || RAMP[RAMP.length - 1];
+
+    const h = document.createElement('div');
+    h.className = 'hist-handle';
+    h.style.left = pct + '%';
+    h.style.background = color;
+    h.title = fmt(val);
+    handlesEl.appendChild(h);
+    h.addEventListener('mousedown', (e) => startDrag(e, i, domain, track));
+
+    const iw = document.createElement('div');
+    iw.className = 'break-input-wrap';
+    iw.innerHTML = `<span class="break-input-label"><span class="dot" style="background:${color}"></span>Corte ${i+1}</span>
+      <input type="number" class="break-input" value="${Math.round(val*10)/10}" onchange="onBreakInput(${i}, +this.value)">`;
+    inputsEl.appendChild(iw);
+  });
+}
+
+function startDrag(e, idx, domain, track){
+  e.preventDefault();
+  const rect = track.getBoundingClientRect();
+  function onMove(ev){
+    let x = ev.clientX - rect.left;
+    x = Math.max(0, Math.min(rect.width, x));
+    let val = domain.min + (x / rect.width) * domain.span;
+    val = Math.round(val * 10) / 10;
+    const breaks = currentBreaks();
+    const lo = idx > 0 ? breaks[idx-1] : domain.min;
+    const hi = idx < breaks.length - 1 ? breaks[idx+1] : domain.max;
+    breaks[idx] = Math.max(lo, Math.min(hi, val));
+    scheduleRepaint();
+  }
+  function onUp(){
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    repaint();
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+function onBreakInput(idx, val){
+  const breaks = currentBreaks();
+  const domain = getDomain(state.mode, state.res);
+  const lo = idx > 0 ? breaks[idx-1] : domain.min;
+  const hi = idx < breaks.length - 1 ? breaks[idx+1] : domain.max;
+  breaks[idx] = Math.max(lo, Math.min(hi, val));
+  repaint();
+}
+
+function resetBreaks(){
+  const d = DATA.hexes[state.res].defaultBreaks;
+  state.breaks[state.res] = { n: [...d.n], pot: [...d.pot] };
+  repaint();
+}
+
+function setMode(mode){
+  state.mode = mode;
+  document.getElementById('mode-clients').classList.toggle('active', mode==='clients');
+  document.getElementById('mode-potential').classList.toggle('active', mode==='potential');
+  document.getElementById('breaks-title').textContent = mode === 'clients' ? 'Escala — densidad de clientes' : 'Escala — densidad de potencial';
+  repaint();
+}
+
+function setRes(res){
+  state.res = res;
+  document.querySelectorAll('.res-chip').forEach(el => el.classList.toggle('active', +el.dataset.res === res));
+  repaint();
+}
+
+function renderResChips(){
+  const el = document.getElementById('res-chips');
+  el.innerHTML = DATA.resolutions.map(r =>
+    `<div class="chip res-chip ${r===state.res?'active':''}" data-res="${r}" onclick="setRes(${r})">Hex ${r}</div>`
+  ).join('');
+}
+
+function renderSegChips(){
+  const el = document.getElementById('seg-chips');
+  const segs = DATA.lookups.segments;
+  let html = `<div class="chip active" id="seg-all" onclick="setSegAll()">Todos</div>`;
+  segs.forEach((s, i) => { html += `<div class="chip seg${i}" id="seg-${i}" onclick="toggleSeg(${i})">${s}</div>`; });
+  el.innerHTML = html;
+}
+function setSegAll(){
+  state.filters.seg = null;
+  document.getElementById('seg-all').classList.add('active');
+  DATA.lookups.segments.forEach((_, i) => document.getElementById('seg-'+i).classList.remove('active'));
+  focusPending = true;
+  repaint();
+}
+function toggleSeg(i){
+  if (!state.filters.seg) state.filters.seg = new Set();
+  if (state.filters.seg.has(i)) state.filters.seg.delete(i); else state.filters.seg.add(i);
+  if (state.filters.seg.size === 0) { setSegAll(); return; }
+  document.getElementById('seg-all').classList.remove('active');
+  document.getElementById('seg-'+i).classList.toggle('active', state.filters.seg.has(i));
+  focusPending = true;
+  repaint();
+}
+
+// ---- generic multi-select dropdowns for category / city / subchannel / gec ----
+const DD_CONFIG = {
+  cat: { lookupKey: 'categories', label: 'Todas' },
+  city: { lookupKey: 'cities', label: 'Todas' },
+  sub: { lookupKey: 'subchannels', label: 'Todos' },
+  gec: { lookupKey: 'gec', label: 'Todos' },
+};
+
+function toggleDD(type){
+  const panel = document.getElementById(`dd-${type}-panel`);
+  const btn = document.getElementById(`dd-${type}-btn`);
+  const isOpen = panel.classList.contains('open');
+  document.querySelectorAll('.dd-panel').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.dd-btn').forEach(b => b.classList.remove('open'));
+  if (!isOpen){ panel.classList.add('open'); btn.classList.add('open'); openDD = type; populateDD(type); }
+  else openDD = null;
+}
+document.addEventListener('click', (e) => {
+  if (openDD && !e.target.closest(`#dd-${openDD}-wrap`)){
+    document.getElementById(`dd-${openDD}-panel`).classList.remove('open');
+    document.getElementById(`dd-${openDD}-btn`).classList.remove('open');
+    openDD = null;
+  }
+});
+
+function populateDD(type, query){
+  const cfg = DD_CONFIG[type];
+  const values = DATA.lookups[cfg.lookupKey];
+  const selected = state.filters[type];
+  const optsEl = document.getElementById(`dd-${type}-options`);
+  const q = (query || '').toLowerCase();
+  optsEl.innerHTML = values.map((v, i) => {
+    if (q && !v.toLowerCase().includes(q)) return '';
+    const isSel = selected && selected.has(i);
+    return `<div class="dd-option ${isSel?'selected':''}" onclick="toggleDDOption('${type}',${i})">
+      <span class="chk">${isSel?'✓':''}</span>${v}</div>`;
+  }).join('');
+}
+function filterDDOptions(type, query){ populateDD(type, query); }
+
+function toggleDDOption(type, idx){
+  if (!state.filters[type]) state.filters[type] = new Set();
+  if (state.filters[type].has(idx)) state.filters[type].delete(idx); else state.filters[type].add(idx);
+  if (state.filters[type].size === 0) state.filters[type] = null;
+  updateDDLabel(type);
+  populateDD(type);
+  focusPending = true;
+  repaint();
+}
+function updateDDLabel(type){
+  const cfg = DD_CONFIG[type];
+  const sel = state.filters[type];
+  const labelEl = document.getElementById(`dd-${type}-label`);
+  if (!sel || sel.size === 0) labelEl.textContent = cfg.label;
+  else if (sel.size === 1) labelEl.textContent = DATA.lookups[cfg.lookupKey][[...sel][0]];
+  else labelEl.textContent = `${sel.size} seleccionados`;
+}
+
+function init(){
+  document.getElementById('map-subtitle').textContent =
+    `${DATA.meta.embotelladora || ''} · ${DATA.meta.mes_anio || ''} · Kin Analytics`;
+  initBreaks();
+  initMap();
+  renderResChips();
+  renderSegChips();
+  Object.keys(DD_CONFIG).forEach(t => populateDD(t));
+  repaint();
+}
+init();
+</script>
+</body>
+</html>

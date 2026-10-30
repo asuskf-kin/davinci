@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/src/runtime/sandbox.py\"",
+            "timeout": 10,
+            "onFailure": "block",
+            "statusMessage": "Revisando si el comando toca el blob"
+          }
+        ]
+      }
+    ]
+  }
+}

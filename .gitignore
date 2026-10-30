@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# davinci: espejo local del blob y bitácora
+data/
+state/
+.~lock.*#
+outputs/
+*.lock
