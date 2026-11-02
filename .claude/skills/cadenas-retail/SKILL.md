@@ -18,7 +18,9 @@ reglas de UX). Herramienta: `uv run python -m src.main cadenas …` (ver `--help
    `Método franquicia`. Para un país/cadena nueva: agregar la cadena y sus alias en config, correr y revisar los
    "aproximado (verificar)".
 3. **Tipo de punto** (comedor, corporativo, CEDIS, vending, restaurante, accesos/cajas) y **formato** (OXXO Gas/Tienda,
-   Walmart Supercenter/Express…). Los conteos de tiendas excluyen los que no son tienda.
+   Walmart Supercenter/Express…). **Se cuentan TODOS los PdV** (tiendas, comedores, cajas, oficinas) en todo — KPIs,
+   mapa, Nunca compraron, hallazgos — para que todo cuadre con "# PdV" (usuario, 2026-11-02); el tipo de punto queda como
+   columna de detalle y alerta "no es tienda".
 4. **INEGI**: estado, municipio, CVEGEO y población.
 5. **Ventas** (periodo comparable, mes incompleto fuera), estatus (Activo, Nuevo, Perdido 3+ meses, Nunca compró),
    catálogo validado (segmento, marca, presentación) y potencial de gold si existe.
@@ -36,16 +38,24 @@ reglas de UX). Herramienta: `uv run python -m src.main cadenas …` (ver `--help
 ## Entregables en modo territorios
 
 - **Tablero** (`comparativo.py`): Resumen (hook en frases-dato, KPIs, cara a cara, mezcla, crecimiento, consumo,
-  franquicias de Otras cadenas; selector Juntos/Separados propio) · Mapa dividido por ciudad (selector de cadena,
+  franquicias de Otras cadenas; tarjetas del hook en vertical por ciudad, crecimiento verde/rojo, Nunca compraron; selector "Ver: Territorio de operación | Por ciudad" propio) · Mapa dividido por ciudad (selector de cadena,
   tarjetas, puntos, top 5 clicable) · Tendencias por franquicia (una gráfica por ciudad) · Productos (top propio por
-  ciudad y reparto del 100% del revenue por cadena) · Franquicias (sumadas; Juntos/Separados propio).
-- **Excel** (`cadenas_excel.py`): Resumen (tiendas, sin estados, Por territorio + Top 10 municipios) · Por territorio ·
+  ciudad y reparto del 100% del revenue por cadena) · Franquicias (sumadas; selector "Ver" propio) · **Nunca
+  compraron** (tiendas sin ninguna compra del análisis en 24 meses: X de Y por franquicia y ciudad, % de su franquicia,
+  municipios, mapa dividido con esas tiendas en amarillo, lista, y oportunidad de **referencia** = tiendas × revenue
+  promedio de las que sí compran de su franquicia en su ciudad; franquicias con 0 compradores (Costco, Sam's Club) se
+  avisan aparte como POR VERIFICAR "¿compran por otro canal?").
+- **Excel** (`cadenas_excel.py`): Resumen (tiendas, banda "PdV que nunca compraron" total y por ciudad arriba a la derecha, sin estados, Por territorio + Top 10 municipios) · Por territorio ·
   Comparativo (horizontal, bandas de color, diferencias resaltadas) · Detalle PdV (columnas del Excel de referencia y
   luego las nuevas) · Por zona · Por municipio · Tendencia mensual (hasta el último mes completo de todos) · Productos ·
-  Producto × cadena (100% de lo que compra cada franquicia, con TOTAL por bloque y "Resto de …" < 1%) · Top por ciudad.
+  Nunca compraron (resumen por franquicia + lista de tiendas) · Producto × cadena (100% de lo que compra cada
+  franquicia, con TOTAL por bloque y "Resto de …" < 1%) · Top por ciudad.
 
-## Corrida de referencia (2026-10-30, hydration, OXXO · Costco · Walmart · Otras cadenas)
+## Corrida de referencia (2026-11-02, hydration, OXXO · Costco · Walmart · Otras cadenas)
 
-Mérida (Bepensa) 568 tiendas vs CDMX (Femsa) 2,215: CDMX 3.9× más tiendas, pero cada tienda compradora de Mérida vende
-$35.2K vs $21.3K; compran hydration ~94% en ambas; revenue 12m cae en las dos (Mérida −13.7%, CDMX −22.0%). Costco no
+Mérida (Bepensa) 575 PdV vs CDMX (Femsa) 2,236: CDMX 3.9× más PdV, pero cada tienda compradora de Mérida vende
+$35.2K vs $21.2K; compran hydration ~93% en ambas; revenue 12m cae en las dos (Mérida −13.7%, CDMX −22.0%). Costco no
 tiene venta de hydration en las ventas NSR (compra directo). OXXO vende casi solo Flashlyte (Powerade < 1%).
+Contando todos los PdV (2,811: Mérida 575, CDMX 2,236), nunca compraron hydration 191 (6.8% en ambas ciudades: Mérida 39,
+CDMX 152); por cadena OXXO 12 (0.7%), Walmart 56 (40.6%), Otras cadenas 114 (13.3%), Costco 9 de 9 (100%, POR VERIFICAR
+otro canal; 7 tiendas + 1 comedor + 1 punto de cajas).

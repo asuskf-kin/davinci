@@ -75,11 +75,15 @@ referencia y fórmulas vivas sobre 'Detalle PdV': Resumen · [Comparativo · Por
 Por estado · Por municipio · Tendencia mensual · Productos (`cadenas_excel.escribir`).
 
 **RF-11 · Territorios.** `--territorios` filtra cada embotellador a su territorio y agrega la columna Territorio; la hoja
-Comparativo repite los indicadores del Resumen para Juntos y cada territorio (+ índice entre dos territorios).
+Comparativo pone, por cadena y en horizontal, cada territorio y la Diferencia (1.º − 2.º, en tasas en puntos).
 *Test:* `Cadenas.test_territorios`.
 
-**RF-12 · Tableros.** Nacional (`tablero.py`) y de territorios (`comparativo.py`). El de territorios:
-- Resumen: frases-dato, KPIs, cara a cara, mezcla del revenue por grupo y comparaciones **en pares** (misma cadena o
+**RF-12 · Tableros.** Nacional (`tablero.py`) y de territorios (`comparativo.py`). Ambos: periodo corto por línea
+("Oct 2025 – Ago 2026 vs PY") y todo filtro de cadenas/franquicias/embotelladores con "Todas" y "✕ Limpiar". El de territorios:
+- Encabezado: periodo corto por ciudad, una línea cada una ("Oct 2025 – Ago 2026 vs PY"); filtro de cadenas y cada selector de
+  franquicias con "Todas" al final y "✕ Limpiar" (visible solo con algo elegido); selector "Ver: Territorio de operación | Por ciudad" solo en Resumen y Franquicias.
+- Resumen: frases-dato con una fila por ciudad (incluye "Nunca compraron" con enlace a su pestaña), crecimiento verde si
+  sube, rojo si baja, blanco si es 0; KPIs (+ tiendas que nunca compraron), cara a cara, mezcla del revenue por grupo y comparaciones **en pares** (misma cadena o
   franquicia, una barra por ciudad) de crecimiento, consumo por tienda y franquicias de "Otras cadenas".
 - Mapa **dividido** (una ciudad por mapa) con selector de franquicia, tarjetas de resumen, puntos por tienda (centro de
   su celda H3 nivel 10, ~70 m; nunca la coordenada exacta) y top 5 tiendas en tarjetas que llevan al punto.
@@ -87,12 +91,15 @@ Comparativo repite los indicadores del Resumen para Juntos y cada territorio (+ 
 - Productos: cada ciudad con **su propio top** (los catálogos de cada embotellador no coinciden) y "¿Qué vende cada
   cadena?" como reparto del 100% de su revenue por producto.
 - Franquicias: todas las tiendas de cada franquicia sumadas (no tienda por tienda).
+- Nunca compraron: tiendas sin ninguna compra del análisis en 24 meses, por franquicia y ciudad (X de Y, %), municipios,
+  mapa, lista y oportunidad de **referencia** (tiendas × revenue promedio de las que sí compran de su franquicia en su
+  ciudad); franquicias sin ningún comprador se avisan como POR VERIFICAR. En el Excel, hoja "Nunca compraron".
 - Solo se comparan indicadores que existen en todas las ciudades (sin venta del mes ni potencial si falta en una);
-  una cadena sin venta del análisis dice "Sin venta de … en los datos"; sin filtro "solo tiendas" visible (siempre activo).
+  una cadena sin venta del análisis dice "Sin venta de … en los datos"; se cuentan TODOS los PdV (tiendas, comedores, cajas, oficinas) en tablero y Excel, para que todo cuadre con "# PdV".
 
 **RF-13 · Excel de territorios.** Resumen sin filas de estado (geografía por territorio y municipio), sin filas con
-huecos; Comparativo con un bloque por cadena (territorios · Diferencia en las mismas unidades, en tasas en puntos ·
-Juntos) y una sola nota si la cadena no vende el análisis; Producto × cadena (formato largo: franquicia, ciudad,
+huecos, con banda "PdV que nunca compraron" (total y por ciudad, arriba) y filas con su % (también en Comparativo y en los hallazgos); Comparativo con un bloque por cadena (territorios · Diferencia en las mismas unidades, en tasas en puntos)
+y una sola nota si la cadena no vende el análisis; Producto × cadena (formato largo: franquicia, ciudad,
 producto, tiendas que lo compraron, % de sus tiendas, revenue); Top por ciudad. "Independientes" solo con
 `--independientes`. Si el Excel anterior está abierto se guarda una copia con la hora.
 

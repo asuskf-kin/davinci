@@ -7,14 +7,44 @@ herramientas de `src/`. Todo es **solo lectura**: no se sube nada a Azure.
 
 ## Preparar
 
+Requisitos:
+- [uv](https://docs.astral.sh/uv/) y Python ≥ 3.14 (uv lo instala si falta). `python` debe estar en el PATH: el hook de
+  seguridad (`.claude/settings.json` → `src/runtime/sandbox.py`) se corre con él; si no, Claude Code bloquea los comandos.
+- [Claude Code](https://claude.com/claude-code) (el cerebro del agente).
+- Acceso de lectura al blob de Azure (`prospecting-data`).
+- LibreOffice (`soffice`) para recalcular y revisar los Excel en el QA (opcional para correr los comandos).
+- Internet: INEGI (estado/municipio) y mapa base de los HTML.
+
 ```bash
 uv sync
 ```
 
-Crear `.env` en la raíz con la cadena de conexión de Azure (no se versiona):
+```bash
+cp .env.example .env
+```
+
+Completar en `.env` la cadena de conexión (`AZURE_STORAGE_CONNECTION_STRING`); el `.env` no se versiona. Probar:
+
+```bash
+uv run python -m unittest discover -s tests -t .
+```
+
+`data/` (copia local del blob e INEGI), `state/` (bitácora de corridas) y `outputs/` (entregables) se crean solos y no
+se versionan.
+
+## Estructura
 
 ```
-AZURE_STORAGE_CONNECTION_STRING = <cadena>
+.claude/CLAUDE.md      el "prompt" del agente: cómo trabaja, reglas firmes, mapa de skills
+.claude/skills/        conocimiento: dwh-navegacion, pitch-hook-kin, cadenas-retail, evaluacion-cp, marca Kin, UX…
+.claude/settings.json  hook que pide OK antes de cualquier escritura en el blob
+.claude/launch.json    servidor "entregables" (puerto 8772) para ver los HTML de outputs/
+src/main.py            entrada única: evaluar | cadenas
+src/config/            settings (capas, rutas) · cadenas (reglas de cadena, alias, columnas por embotellador)
+src/runtime/           executor (bitácora) · sandbox (hook)
+src/tools/             blob · dwh · inegi · marca · evaluacion/excel/mapa · cadenas/cadenas_excel/tablero/comparativo
+tests/                 pruebas del arnés
+SPEC.md                especificación (requisitos RF-xx y reglas)
 ```
 
 ## Cómo piensa el agente
@@ -38,7 +68,7 @@ Abrir el repo en Claude Code y pedir, por ejemplo:
 |---|---|
 | `uv run python -m src.main evaluar --pais mx --analisis hydration --embotelladores femsa,bepensa` | `outputs/{fecha}_cp_hydration_mx/`: Excel (resumen, segmentos, listas para recuperar y crecer) y mapa de hexágonos |
 | `uv run python -m src.main cadenas --cadenas oxxo,walmart,costco` | `outputs/{fecha}_cadenas_hydration_mx/`: UN Excel con fórmulas (formato del Excel OXXO_Walmart_Costco_Nacional) y tablero HTML |
-| `uv run python -m src.main cadenas --cadenas oxxo,walmart --otras --territorios "Mérida=bepensa:Yucatán/Mérida;CDMX=femsa:Ciudad de México"` | `outputs/{fecha}_cadenas_hydration_merida_cdmx/`: Excel con Comparativo y tablero Juntos/Separados con mapa |
+| `uv run python -m src.main cadenas --cadenas oxxo,walmart --otras --territorios "Mérida=bepensa:Yucatán/Mérida;CDMX=femsa:Ciudad de México"` | `outputs/{fecha}_cadenas_hydration_merida_cdmx/`: Excel con Comparativo y banda "Nunca compraron" en el Resumen; tablero (Ver: Territorio de operación / Por ciudad) con mapa dividido, tendencias, productos, franquicias y Nunca compraron; filtros con "Todas" y "✕ Limpiar" |
 
 Pruebas: `uv run python -m unittest discover -s tests -t .`
 

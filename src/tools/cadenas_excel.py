@@ -247,7 +247,7 @@ def _resumen(wb, d, letra, fin, cadenas, hay_ingreso, hay_potencial, periodos, h
     banner(ws, 5 if nc == 3 else 2, ultima + 1, etiqueta, f"{' · '.join(cadenas)}: cuántos son y dónde están",
            f"Fuente: {fuente} · estado/municipio INEGI por lat/long · ventas {A} " + " · ".join(f"{e} {p}" for e, p in periodos.items()))
     cad, tipo, emb = _r(letra, "Cadena", fin), _r(letra, "Tipo de punto", fin), _r(letra, "Embotellador", fin)
-    for c, w in {"A": 2, "B": 40, L(g0 - 1): 4, L(g0): 28, L(ultima + 1): 2}.items():
+    for c, w in {"A": 2, "B": 46, L(g0 - 1): 4, L(g0): 28, L(ultima + 1): 2}.items():
         ws.column_dimensions[c].width = w
     for j in range(3, 3 + nc):
         ws.column_dimensions[L(j)].width = 30
@@ -255,26 +255,49 @@ def _resumen(wb, d, letra, fin, cadenas, hay_ingreso, hay_potencial, periodos, h
         ws.column_dimensions[L(j)].width = 12
 
     # Bloque de KPIs (filas 7–11)
-    # Bloque de KPIs: TIENDAS (sin comedores, oficinas ni CEDIS), igual que el tablero; número y leyenda coinciden
+    # Bloque de KPIs: TODOS los PdV (tiendas, comedores, cajas, oficinas), igual que '# PdV' y el tablero: todo cuadra
     lugares = "ciudades" if "territorio" in d else "estados"
     hoja_l = "Por territorio" if "territorio" in d else "Por estado"
-    titulo_seccion(ws, 7, 2, "Número de tiendas")
+    titulo_seccion(ws, 7, 2, "Número de PdV")
     ws.cell(9, 2, f"TOTAL {nc} CADENAS").font = _f(size=9, bold=True, color=GRIS)
-    x = ws.cell(10, 2, f'=COUNTIFS({tipo},"Tienda")')
+    x = ws.cell(10, 2, f'=COUNTA({cad})')
     x.font, x.number_format, x.alignment = _f("Space Grotesk", 26, True), NUM, Alignment(horizontal="center")
     ws.cell(11, 2, f"=COUNTA('Por municipio'!C{FILA0}:C{mun_tot - 1})&\" municipios · \"&COUNTA('{hoja_l}'!A{FILA0}:A{est_tot - 1})&\" {lugares}\"").font = _f(size=9, color=GRIS)
     centro = Alignment(horizontal="center", vertical="center", wrap_text=True)
     for j, c in enumerate(cadenas, 3):
         fondo = _fill(NEGRO if j == 3 else NEGRO2)
-        n_est = d.loc[d["cadena"].eq(c) & d["tipo_punto"].eq("Tienda"), "territorio" if "territorio" in d else "estado"].nunique()
+        n_est = d.loc[d["cadena"].eq(c), "territorio" if "territorio" in d else "estado"].nunique()
         for r, v, fnt, fmt in ((9, c.upper(), _f(size=9, bold=True, color=GRIS), None),
-                               (10, f'=COUNTIFS({cad},"{c}",{tipo},"Tienda")', _f("Space Grotesk", 26, True, AMARILLO if j == 3 else "FFFFFF"), NUM),
-                               (11, f"tiendas · {n_est} {lugares}", _f(size=9, color=GRIS2), None)):
+                               (10, f'=COUNTIFS({cad},"{c}")', _f("Space Grotesk", 26, True, AMARILLO if j == 3 else "FFFFFF"), NUM),
+                               (11, f"PdV · {n_est} {lugares}", _f(size=9, color=GRIS2), None)):
             x = ws.cell(r, j, v)
             x.font, x.fill, x.alignment = fnt, fondo, centro
             if fmt:
                 x.number_format = fmt
     ws.row_dimensions[10].height = 39.75
+
+    # Banda "Nunca compraron" (a la derecha, filas 7–12): PdV sin ninguna compra del análisis, total y por territorio
+    es_r, grupo_r = _r(letra, f"Estatus {A}", fin), _r(letra, "Territorio" if "territorio" in d else "Embotellador", fin)
+    titulo_seccion(ws, 7, g0, f"PdV que nunca compraron {A}")
+    for j, e in enumerate(["TOTAL"] + list(embs)):
+        col, filtro = (g0, "") if not j else (g0 + 1 + (j - 1) * 2, f',{grupo_r},"{e}"')
+        if j:
+            ws.merge_cells(start_row=9, start_column=col, end_row=9, end_column=col + 1)
+            for r in (10, 11):
+                ws.merge_cells(start_row=r, start_column=col, end_row=r, end_column=col + 1)
+        n = f'COUNTIFS({es_r},"Nunca*"{filtro})'
+        tot = f'COUNTA({cad})' if not j else f'COUNTIFS({grupo_r},"{e}")'
+        for r, v, fnt, fmt in ((9, e.upper(), _f(size=9, bold=True, color=GRIS), None),
+                               (10, f"={n}", _f("Space Grotesk", 26, True, AMARILLO if not j else "FFFFFF"), NUM),
+                               (11, f'=IF({tot}=0,"",TEXT({n}/{tot},"0.0%")&" de "&TEXT({tot},"#,##0")&" PdV")', _f(size=9, color=GRIS2), None)):
+            for cc in range(col, col + (2 if j else 1)):
+                ws.cell(r, cc).fill = _fill(NEGRO if not j else NEGRO2)
+            x = ws.cell(r, col, v)
+            x.font, x.alignment = fnt, centro
+            if fmt:
+                x.number_format = fmt
+    x = ws.cell(12, g0, "Dónde están y de qué franquicia → hoja 'Nunca compraron'")
+    x.hyperlink, x.font = "#'Nunca compraron'!A1", _f(size=9, color=GRIS)
 
     # Resumen por cadena (filas 15+)
     titulo_seccion(ws, 14, 2, "Resumen por cadena")
@@ -333,6 +356,9 @@ def _resumen(wb, d, letra, fin, cadenas, hay_ingreso, hay_potencial, periodos, h
                                                          f"Cajas {A} 12m", f"Compra {A}", f"Estatus {A}"))
     add(f"PdV que compran {A}", f'=COUNTIFS({{cad}},"{{c}}",{com},"Sí")', NUM, True, False)
     add(f"% de PdV que compran {A}", f"=IF({{r:# PdV}}=0,0,{{r:PdV que compran {A}}}/{{r:# PdV}})", PCT, True, False)
+    # PdV sin ninguna compra del análisis (todos los PdV, igual que el tablero y la hoja 'Nunca compraron')
+    add(f"PdV que nunca compraron {A}", f'=COUNTIFS({{cad}},"{{c}}",{es},"Nunca*")', NUM, True, False)
+    add(f"% de PdV que nunca compró {A}", f"=IF({{r:# PdV}}=0,0,{{r:PdV que nunca compraron {A}}}/{{r:# PdV}})", PCT, True, False)
     add(f"Revenue {A} 12m ($)", f'=SUMIFS({rv},{{cad}},"{{c}}")', DINERO, True, False)
     add(f"Revenue {A} 12m anterior ($)", f'=SUMIFS({ra},{{cad}},"{{c}}")', DINERO, True, False)
     add(f"Crecimiento {A} vs año anterior", f"=IF({{r:Revenue {A} 12m anterior ($)}}=0,0,{{r:Revenue {A} 12m ($)}}/{{r:Revenue {A} 12m anterior ($)}}-1)", PCT, True, False)
@@ -357,7 +383,7 @@ def _resumen(wb, d, letra, fin, cadenas, hay_ingreso, hay_potencial, periodos, h
         zebra = i % 2 == 1
         celda(ws, r, 2, t, fuente=_f(bold=negrita), zebra=zebra)
         for j, c in enumerate(cadenas):
-            if c in sin_venta and desde_analisis <= i and not t.startswith(("Potencial", "PdV prioridad")):
+            if c in sin_venta and desde_analisis <= i and not t.startswith(("Potencial", "PdV prioridad", "PdV que nunca", "% de PdV que nunca")):
                 celda(ws, r, 3 + j, f"Sin venta de {A} en los datos", fuente=_f(size=9, color=GRIS), centro=True, zebra=zebra)
                 continue
             v = p(j, c) if callable(p) else p.replace("{cad}", cad).replace("{tipo}", tipo).replace("{c}", c)
@@ -539,7 +565,7 @@ def _producto_cadena(wb, d, vv, cat, cadenas, ult12, analisis, etiqueta):
     ws = wb.create_sheet("Producto × cadena")
     ws.sheet_properties.tabColor = NEGRO2
     g = "territorio" if "territorio" in d else "embotellador"
-    tiendas = d[d["tipo_punto"].eq("Tienda") & d["cadena"].isin(cadenas)]
+    tiendas = d[d["cadena"].isin(cadenas)]                # todos los PdV, como el resto del libro
     v = pd.concat([vv[(vv["embotellador"] == e) & vv["month_445"].isin(m)] for e, m in ult12.items()])
     v = con_producto(v[(v["revenue"] > 0) & v["pos_id"].isin(tiendas["pos_id"])], cat)
     v = v.join(tiendas.set_index("pos_id")[["franquicia", "cadena"]], on="pos_id", rsuffix="_d")
@@ -552,7 +578,7 @@ def _producto_cadena(wb, d, vv, cat, cadenas, ult12, analisis, etiqueta):
             "Cajas 12m", "% de las cajas de la franquicia", "Tiendas que lo compraron", "Tiendas de la franquicia"]
     banner(ws, 2, len(cols), etiqueta, "¿Qué vende cada cadena y dónde? · el 100% de lo que compra cada franquicia",
            f"Por franquicia y {g}: cómo se reparte el revenue (y las cajas) de {analisis} de la franquicia entre sus productos; "
-           f"cada bloque suma 100% en su fila TOTAL · últimos 12 meses · solo tiendas · catálogo validado")
+           f"cada bloque suma 100% en su fila TOTAL · últimos 12 meses · todos los PdV · catálogo validado")
     cabecera(ws, FILA0 - 1, 1, cols, amarillas=("% del revenue de la franquicia",))
     C = {c: L(j) for j, c in enumerate(cols, 1)}
     r = FILA0
@@ -599,7 +625,7 @@ def _top_ciudad(wb, u, etiqueta):
     cols = ["Ciudad", "#", "Producto", "Segmento", "Marca", "Revenue 12m ($)", "% del revenue de la ciudad", "Tiendas que lo compraron",
             "Franquicias que más lo venden"]
     banner(ws, 2, len(cols), etiqueta, "Top de productos en cada ciudad",
-           "Cada ciudad con su propio ranking (los catálogos de cada embotellador no coinciden) · últimos 12 meses · solo tiendas")
+           "Cada ciudad con su propio ranking (los catálogos de cada embotellador no coinciden) · últimos 12 meses · todos los PdV")
     cabecera(ws, FILA0 - 1, 1, cols, amarillas=("Revenue 12m ($)",))
     for i, x in enumerate(t.itertuples(index=False)):
         for j, (val, fmt) in enumerate(zip([x.territorio, x.rank, x.producto, x.segmento, x.marca, x.rev, x.pct_rev, x.tiendas, x.franquicias],
@@ -609,6 +635,54 @@ def _top_ciudad(wb, u, etiqueta):
         ws.column_dimensions[L(j)].width = w
     ws.freeze_panes = f"D{FILA0}"
     ws.auto_filter.ref = f"A{FILA0 - 1}:{L(len(cols))}{FILA0 + len(t) - 1}"
+
+
+def _nunca(wb, d, cadenas, analisis, etiqueta):
+    """PdV (todos: tiendas, comedores, cajas…) que nunca compraron el análisis (24 meses): por franquicia y lugar, cuántas son, qué % de su franquicia,
+    dónde están, y una oportunidad de REFERENCIA (si compraran como el promedio de las que sí compran de su franquicia ahí);
+    debajo, la lista de esas tiendas."""
+    ws = wb.create_sheet("Nunca compraron")
+    ws.sheet_properties.tabColor = AMARILLO
+    g = "territorio" if "territorio" in d else "estado"
+    t = d[d["cadena"].isin(cadenas)].copy()
+    t["nunca"] = t["estatus"].str.startswith("Nunca")
+    filas = []
+    for (lugar, cadena, franq), b in t.groupby([g, "cadena", "franquicia"]):
+        nun = b[b["nunca"]]
+        if nun.empty:
+            continue
+        comp = b[b["revenue_12m"] > 0]
+        prom = comp["revenue_12m"].mean() if len(comp) else None
+        muni = ", ".join(f"{m} ({n})" for m, n in nun["municipio"].value_counts().head(3).items())
+        filas.append([lugar, cadena, franq, len(b), len(nun), len(nun) / len(b), muni,
+                      nun["formato"].value_counts().index[0], prom, len(nun) * prom if prom else None])
+    cols = [g.capitalize(), "Grupo", "Franquicia", "PdV", "Nunca compraron", "% de su franquicia", "Dónde (municipios)",
+            "Formato más común", f"Revenue 12m promedio de las que sí compran ($)", "Referencia: oportunidad 12m ($)"]
+    banner(ws, 2, len(cols), etiqueta, f"PdV que nunca compraron {analisis}",
+           f"Sin ninguna compra de {analisis} en los 24 meses de ventas · todos los PdV (el tipo de punto en la lista) · la oportunidad es una REFERENCIA (si compraran "
+           f"como el promedio de las que sí compran de su franquicia en su {g}), no una predicción")
+    cabecera(ws, FILA0 - 1, 1, cols, amarillas=("% de su franquicia",))
+    filas.sort(key=lambda x: (x[0], -x[4]))
+    for i, f in enumerate(filas):
+        for j, (val, fmt) in enumerate(zip(f, [None, None, None, NUM, NUM, PCT, None, None, DINERO, DINERO]), 1):
+            celda(ws, FILA0 + i, j, val if val is not None else "Sin compradores para comparar", fmt,
+                  fuente=_f("Space Grotesk", 10, True) if j == 3 else None)
+    fin = FILA0 + len(filas) - 1
+    if filas:
+        ws.conditional_formatting.add(f"F{FILA0}:F{fin}", DataBarRule(start_type="num", start_value=0, end_type="num", end_value=1, color="E5FF01"))
+    # lista de tiendas
+    r = fin + 3
+    titulo_seccion(ws, r, 1, f"Lista de PdV que nunca compraron {analisis}")
+    lc = [g.capitalize(), "Franquicia", "pos_id", "Nombre", "Tipo de punto", "Formato", "Municipio", "Zona"]
+    cabecera(ws, r + 1, 1, lc)
+    lista = t[t["nunca"]].sort_values([g, "franquicia", "municipio"])
+    for i, x in enumerate(lista.itertuples(index=False)):
+        for j, val in enumerate([getattr(x, g), x.franquicia, x.pos_id, x.cliente, x.tipo_punto, x.formato, x.municipio, x.zona], 1):
+            celda(ws, r + 2 + i, j, val, zebra=i % 2 == 1)
+    for j, w in enumerate([14, 16, 12, 34, 22, 20, 26, 18, 18, 18], 1):
+        ws.column_dimensions[L(j)].width = w
+    ws.column_dimensions["G"].width = 40
+    ws.freeze_panes = f"D{FILA0}"
 
 
 def _tendencia(wb, vv, cadenas, analisis, etiqueta, incompletos):
@@ -755,6 +829,7 @@ def escribir(ruta, base, vv, cat, infos, hs, analisis, nombres, pais):
                ", ".join(f"{e} {i['periodo']['incompleto']}" for e, i in infos.items() if i["periodo"]["incompleto"]))
     _productos(wb, vv, cat, cadenas, {i.get("embotellador", e): (i["ult12"], [str(int(x) - 100) for x in i["ult12"]]) for e, i in infos.items()},
                analisis, etiqueta)
+    _nunca(wb, d, cadenas, analisis, etiqueta)
     _producto_cadena(wb, d, vv, cat, cadenas, {i.get("embotellador", e): i["ult12"] for e, i in infos.items()}, analisis, etiqueta)
     wb.save(ruta)
     return ruta

@@ -74,9 +74,10 @@ Ver HTML: servidor `entregables` de `.claude/launch.json` (puerto 8772, sirve `o
 - Excel abierto en Windows → no se sobrescribe (se guarda copia con la hora; borrarla al final).
 - Recalcular/revisar Excel: `soffice --headless --convert-to xlsx|png`.
 
-## Corridas de referencia (2026-10-30, mx · hydration · moderno)
+## Corridas de referencia (mx · hydration · moderno)
 
 - `evaluar` → `outputs/20261030_cp_hydration_mx/` (Femsa 38,688 compradores con potencial; Bepensa 3,192 sin gold).
-- `cadenas` nacional → `outputs/20261030_cadenas_hydration_mx/`.
-- Mérida (Bepensa) vs CDMX (Femsa), OXXO · Costco · Walmart · Otras cadenas → `outputs/20261030_cadenas_hydration_merida_cdmx/`
-  (hook: CDMX 3.9× más tiendas, pero Mérida $35.2K vs $21.3K por tienda compradora; ambas caen vs año anterior).
+- `cadenas` nacional → `outputs/20261102_cadenas_hydration_mx/`.
+- Mérida (Bepensa) vs CDMX (Femsa), OXXO · Costco · Walmart · Otras cadenas → `outputs/20261102_cadenas_hydration_merida_cdmx/`
+  (hook: CDMX 3.9× más PdV, pero Mérida $35.2K vs $21.2K por tienda compradora; ambas caen vs año anterior,
+  Mérida −13.7% y CDMX −22.0%; todos los PdV: 2,811; nunca compraron 191 = 6.8%: Mérida 39 de 575, CDMX 152 de 2,236).

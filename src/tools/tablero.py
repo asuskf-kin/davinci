@@ -89,7 +89,7 @@ h1{font-family:'Space Grotesk',sans-serif;font-size:20px;margin:0}h1 b{color:var
 .filtros{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:10px}
 .filtros .g{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.filtros .l{font-size:11px;color:var(--g3);text-transform:uppercase;letter-spacing:.05em}
 .chip{border:1px solid #444;background:transparent;color:#fff;border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
-.chip.on{background:#fff;color:var(--neg);border-color:#fff;font-weight:600}.chip i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.chip.on{background:#fff;color:var(--neg);border-color:#fff;font-weight:600}.chip.limpiar{border-style:dashed}.chip i{width:9px;height:9px;border-radius:50%;display:inline-block}
 select{padding:4px 6px;border-radius:6px;border:0;font:inherit;font-size:12px}
 nav{display:flex;gap:4px;margin-top:12px;flex-wrap:wrap}nav button{background:none;border:0;color:var(--g3);font:600 13px 'Space Grotesk',sans-serif;padding:6px 10px;border-radius:6px;cursor:pointer}
 nav button.on{background:var(--ama);color:var(--neg)}
@@ -183,7 +183,7 @@ const D=__DATOS__;
 const T=D.tiendas, TC=T.col, NT=TC.pos_id.length, TD=T.dic;
 const PAL=__SERIES__;
 const COLOR={},DASH={};D.orden_cadenas.forEach((c,i)=>{COLOR[c]=c==='Independientes'?PAL[2]:PAL[Math.min(i,3)];DASH[c]=c==='Independientes'||i>3?'5 4':''});
-const st={emb:new Set(TD.embotellador),cad:new Set(D.foco),est:'',tienda:true,tab:'Resumen',mTend:'rev',mTop:'revenue_12m',orden:{}};
+const st={emb:new Set(TD.embotellador),cad:new Set(D.foco),est:'',tienda:false,tab:'Resumen',mTend:'rev',mTop:'revenue_12m',orden:{}};
 const $=id=>document.getElementById(id);
 const fmtN=v=>v==null||!isFinite(v)?'—':Math.round(v).toLocaleString('es-MX');
 const fmt$=v=>v==null||!isFinite(v)?'—':'$'+abr(v);
@@ -193,13 +193,21 @@ const tt=$('tt');function tip(e,h){tt.innerHTML=h;tt.style.display='block';const
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 // --- filtros ---
-$('sub').textContent=Object.entries(D.meta).map(([e,m])=>`${e}: ventas ${m.periodo.desde}–${m.periodo.hasta} vs ${m.periodo.anterior_desde}–${m.periodo.anterior_hasta}`+(m.periodo.incompleto?` (mes ${m.periodo.incompleto} incompleto, fuera)`:'')).join(' · ');
-function chips(id,vals,set,col){const el=$(id);el.innerHTML='';vals.forEach(v=>{const b=document.createElement('button');b.className='chip'+(set.has(v)?' on':'');
- b.innerHTML=(col?`<i style="background:${COLOR[v]}"></i>`:'')+esc(v);b.onclick=()=>{set.has(v)?set.delete(v):set.add(v);if(!set.size)set.add(v);b.classList.toggle('on',set.has(v));render()};el.appendChild(b)})}
+// periodo corto, una línea por embotellador: "Oct 2025 – Ago 2026 vs PY" (PY = mismos meses del año anterior)
+const MES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],fM=m=>`${MES[+String(m).slice(4,6)-1]} ${String(m).slice(0,4)}`;
+$('sub').innerHTML=Object.entries(D.meta).map(([e,m])=>`<div><b>${esc(e)}</b>: ${fM(m.periodo.desde)} – ${fM(m.periodo.hasta)} vs PY`+(m.periodo.incompleto?` · ${fM(m.periodo.incompleto)} incompleto, fuera`:'')+'</div>').join('');
+// cada filtro: sus chips + "Todas" (selecciona todo) + "✕ Limpiar" (solo si hay algo elegido; vuelve al estado inicial)
+function chips(id,vals,set,col){const el=$(id),ini=[...set],bs={};el.innerHTML='';
+ const igual=xs=>set.size===xs.length&&xs.every(x=>set.has(x)),poner=xs=>{set.clear();xs.forEach(x=>set.add(x));pintar();render()};
+ vals.forEach(v=>{const b=document.createElement('button');b.className='chip';
+  b.innerHTML=(col?`<i style="background:${COLOR[v]}"></i>`:'')+esc(v);b.onclick=()=>{set.has(v)?set.delete(v):set.add(v);if(!set.size)set.add(v);pintar();render()};bs[v]=b;el.appendChild(b)});
+ const bt=document.createElement('button');bt.className='chip';bt.textContent='Todas';bt.title='Seleccionar todas (limpia el filtro)';bt.onclick=()=>poner(vals);el.appendChild(bt);
+ const bl=document.createElement('button');bl.className='chip limpiar';bl.textContent='✕ Limpiar';bl.title='Quitar la selección';bl.onclick=()=>poner(ini);el.appendChild(bl);
+ function pintar(){for(const v in bs)bs[v].classList.toggle('on',set.has(v));bt.classList.toggle('on',igual(vals));bl.style.display=igual(ini)?'none':''}pintar()}
 chips('fEmb',TD.embotellador,st.emb);
 chips('fCad',D.orden_cadenas.filter(c=>TD.cadena.includes(c)),st.cad,true);
 const fe=$('fEst');fe.add(new Option('Todos',''));[...TD.estado].sort().forEach(e=>fe.add(new Option(e,e)));fe.onchange=()=>{st.est=fe.value;render()};
-$('fTienda').onclick=e=>{e.preventDefault();st.tienda=!st.tienda;$('fTienda').classList.toggle('on',st.tienda);render()};$('fTienda').classList.add('on');
+$('fTienda').onclick=e=>{e.preventDefault();st.tienda=!st.tienda;$('fTienda').classList.toggle('on',st.tienda);render()};$('fTienda').classList.toggle('on',st.tienda);
 const tabs=['Resumen','Tendencias','Cadenas','Productos','Geografía','Top tiendas','Calidad del dato'];
 tabs.forEach(t=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>{st.tab=t;render()};$('tabs').appendChild(b)});
 

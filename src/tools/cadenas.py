@@ -176,7 +176,7 @@ def hallazgos(d, info, analisis, nombres):
     """Frases para el tomador de decisiones, solo con cifras del dato (lo que falta, POR VERIFICAR)."""
     d = d[d["cadena"].isin(nombres)]
     emb = d["embotellador"].iat[0]
-    t = d[d["tipo_punto"] == "Tienda"]
+    t = d                                                # todos los PdV (tiendas, comedores, cajas…): cuadra con '# PdV'
     por = t.groupby("cadena")
     n = d.groupby("cadena").size().sort_values(ascending=False)
     h = {"COBERTURA": f"{n.index[0]} domina en número: {n.iat[0]:,} PdV ({n.iat[0] / n.sum():.0%} de los {n.sum():,} PdV de las "
@@ -199,7 +199,7 @@ def hallazgos(d, info, analisis, nombres):
     rev = por["revenue_12m"].sum()
     crec = rev / por["revenue_12m_anterior"].sum() - 1
     p = info["periodo"]
-    h[analisis.upper()] = (f"Tiendas que compran {analisis}: " + ", ".join(f"{k} {v:.0%}" for k, v in pen.items())
+    h[analisis.upper()] = (f"PdV que compran {analisis}: " + ", ".join(f"{k} {v:.0%}" for k, v in pen.items())
                            + f". Venta {analisis} {p['desde']}–{p['hasta']}: "
                            + ", ".join(f"{k} ${rev[k]:,.0f}" + (f" ({crec[k]:+.1%} vs año anterior)" if np.isfinite(crec[k]) else
                                                                  " (sin venta el año anterior)") for k in rev.index) + ".")
@@ -212,11 +212,16 @@ def hallazgos(d, info, analisis, nombres):
     mun = d.pivot_table(index=["cvegeo", "municipio", "estado"], columns="cadena", values="pos_id", aggfunc="count", fill_value=0)
     otras = [k for k in n.index if k != big]
     blanco = mun[(mun[otras] == 0).all(axis=1)].sort_values(big, ascending=False).head(3) if otras else mun.iloc[:0]
-    h["OPORTUNIDAD"] = (", ".join(f"{k}: {v:,} tiendas que no compran {analisis}" for k, v in sin.items())
+    h["OPORTUNIDAD"] = (", ".join(f"{k}: {v:,} PdV que no compran {analisis}" for k, v in sin.items())
                         + (" y " + ", ".join(f"{k} {v:,} que dejaron de comprar" for k, v in perdidos.items()) if len(perdidos) else "")
                         + " — listas para activar (Detalle PdV, filtros Compra y Estatus)."
                         + (f" Municipios con más {big} y sin {', '.join(otras)}: "
                            + ", ".join(f"{i[1]}, {i[2]} ({r[big]:,})" for i, r in blanco.iterrows()) + "." if len(blanco) else ""))
+    g = ["territorio", "cadena"] if "territorio" in t else ["cadena"]
+    nun = t.assign(nun=t["estatus"].str.startswith("Nunca")).groupby(g)["nun"].agg(["sum", "size"])
+    h["NUNCA COMPRARON"] = (" · ".join(f"{' '.join(k) if isinstance(k, tuple) else k}: {int(r['sum']):,} de {int(r['size']):,} PdV "
+                                        f"({r['sum'] / r['size']:.0%})" for k, r in nun.iterrows() if r["sum"])
+                            + f" nunca compraron {analisis} — dónde están y de qué franquicia, en la hoja 'Nunca compraron'.")
     al = pd.Series([x for s in d["alertas"] if s for x in s.split("; ")]).value_counts()
     h["CALIDAD DEL DATO"] = ("Sin alertas." if al.empty else " · ".join(f"{v:,} PdV con '{k}'" for k, v in al.items())
                              + ". Se marcan, no se borran.")

@@ -1,6 +1,6 @@
 """Tablero comparativo de territorios (p. ej. Mérida vs CDMX) para cadenas de retail: visual, poco texto, marca Kin.
 
-Vista "Juntos" (todo sumado) o "Separados" (un panel por territorio, misma escala para comparar): KPIs y barras cara a
+Selector "Ver": "Territorio de operación" (todo sumado) o "Por ciudad" (un panel por territorio, misma escala): KPIs y barras cara a
 cara, mapa interactivo de hexágonos H3 (un mapa o dos lado a lado), tendencias (valores o índice 100), productos del
 catálogo validado y top de tiendas. Datos embebidos como cubos; sin coordenadas de PdV (solo IDs de hexágono).
 """
@@ -33,7 +33,7 @@ def con_producto(v, cat):
 
 def _franquicia_producto(d, vt, cat, meta):
     """Qué vende cada franquicia en cada ciudad: tiendas únicas que compraron cada producto en 12m y revenue."""
-    tiendas = d[d["tipo_punto"].eq("Tienda")]
+    tiendas = d                                  # todos los PdV (tiendas, comedores, cajas…), igual que el resto
     u = pd.concat([vt[vt["territorio"].eq(t) & vt["month_445"].isin(m["ult12"])] for t, m in meta.items()])
     u = con_producto(u[(u["revenue"] > 0) & u["pos_id"].isin(tiendas["pos_id"])], cat)
     if "franquicia" not in u:
@@ -125,7 +125,7 @@ h1{font:700 22px 'Space Grotesk',sans-serif;margin:0}h1 b{color:var(--ama)}
 .seg{display:inline-flex;gap:4px;flex-wrap:wrap}.seg button,.chip{border:1px solid var(--g3);background:transparent;color:#fff;border-radius:999px;padding:4px 12px;font:inherit;font-size:12px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
 .seg button.on{background:var(--ama);color:var(--neg);border-color:var(--ama);font-weight:600}
 .chip i{width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 1px #ffffff40}.chip{color:var(--g3);border-color:var(--g4)}.chip.on{background:var(--g4);color:#fff;border-color:var(--ama);font-weight:600}
-.chip:not(.on) i{opacity:.35}.chip:hover,.seg button:hover{border-color:var(--g2)}
+.chip.limpiar{border-style:dashed;border-color:var(--g3);color:#fff}.chip:not(.on) i{opacity:.35}.chip:hover,.seg button:hover{border-color:var(--g2)}
 button:focus-visible{outline:2px solid var(--ama);outline-offset:2px}::selection{background:var(--ama);color:var(--neg)}
 *{scrollbar-color:var(--g3) var(--neg);scrollbar-width:thin}body{font-variant-numeric:tabular-nums}
 .vista button{font:700 13px 'Space Grotesk',sans-serif;padding:6px 16px}
@@ -139,6 +139,10 @@ html,body{overflow-x:hidden}svg{max-width:100%}
 .kpi{background:var(--g4);border-radius:12px;padding:14px}.kpi .v{font:700 26px 'Space Grotesk',sans-serif;line-height:1.1}.kpi .l{font-size:12px;color:var(--g3);margin-top:4px}.kpi.ac .v{color:var(--ama)}
 .insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:14px 0}
 .ins{background:var(--g4);border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.4;color:var(--g2)}.ins b{font:700 20px 'Space Grotesk',sans-serif;display:block;color:var(--ama);margin-bottom:2px}
+.ins .lb{display:block;color:var(--g3);font-size:12px;margin-bottom:6px}.ins .fl{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.ins .fl b{display:inline;margin:0}
+.ins .fl span{display:inline-flex;align-items:center;gap:6px;color:#fff}.ins .fl i{width:10px;height:10px;border-radius:3px}
+.ins .ir{background:none;border:0;color:var(--ama);font:inherit;font-size:12px;padding:0;margin-top:6px;cursor:pointer;text-decoration:underline}
+.sube{color:#3DDC84!important}.baja{color:#FF5A5F!important}.cero{color:#fff!important}.sub b{font-weight:600}
 svg text{font-family:'Albert Sans',sans-serif;font-size:11px;fill:var(--g3)}svg text.v{fill:#fff;font-weight:600}svg text.g{fill:#fff;font:600 12px 'Space Grotesk',sans-serif}
 .leg{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;margin-bottom:8px;color:var(--g2)}.leg span{display:inline-flex;gap:6px;align-items:center}.leg i{width:12px;height:10px;border-radius:2px}
 .mapa{height:480px;border-radius:12px;overflow:hidden;margin-top:10px}
@@ -163,11 +167,11 @@ input[type=search]{padding:5px 8px;border:1px solid var(--g3);background:var(--n
   <nav id="tabs"></nav>
 </header>
 <main>
-<section class="tab" data-t="Resumen"><div class="ctl" style="margin:0 0 12px"><span><span class="l">Ver ciudades</span><span class="seg vista" id="vistaR"></span></span></div><div id="rRes"></div></section>
+<section class="tab" data-t="Resumen"><div class="ctl" style="margin:0 0 12px"><span><span class="l">Ver</span><span class="seg vista" id="vistaR"></span></span></div><div id="rRes"></div></section>
 <section class="tab" data-t="Mapa">
   <div class="ctl" style="margin:0 0 12px"><span><span class="l">Cadena</span><span class="seg" id="mFra"></span></span></div>
   <div class="maps dos" id="maps"></div>
-  <p class="sub" style="margin-top:10px">Cada punto es una tienda (ubicada en el centro de su celda de ~70 m); tamaño y color según su revenue 12m. Clic en una tarjeta del top para ir a la tienda.</p>
+  <p class="sub" style="margin-top:10px">Cada punto es un PdV (ubicado en el centro de su celda de ~70 m); tamaño y color según su revenue 12m. Clic en una tarjeta del top para ir a la tienda.</p>
 </section>
 <section class="tab" data-t="Tendencias">
   <div class="card"><h2>Tendencia mensual por franquicia</h2>
@@ -177,7 +181,8 @@ input[type=search]{padding:5px 8px;border:1px solid var(--g3);background:var(--n
   <div class="grid g2" style="margin-top:14px"><div class="card"><h2>Crecimiento por franquicia vs año anterior</h2><div class="leg" id="tYoyL"></div><div id="tYoy"></div></div><div class="card"><h2>Estacionalidad (100 = mes promedio)</h2><div class="leg" id="tEstL"></div><div id="tEst"></div></div></div>
 </section>
 <section class="tab" data-t="Productos"><div id="rProd"></div></section>
-<section class="tab" data-t="Franquicias"><div class="card"><div class="ctl" style="margin:0 0 8px"><span><span class="l">Ver ciudades</span><span class="seg vista" id="vistaF"></span></span><span class="seg" id="sTop"></span></div><input type="search" id="buscar" placeholder="Buscar franquicia"><div id="rTop"></div></div></section>
+<section class="tab" data-t="Nunca compraron"><div id="rNun"></div></section>
+<section class="tab" data-t="Franquicias"><div class="card"><div class="ctl" style="margin:0 0 8px"><span><span class="l">Ver</span><span class="seg vista" id="vistaF"></span></span><span class="seg" id="sTop"></span></div><div class="ctl" style="margin:0 0 8px"><input type="search" id="buscar" placeholder="Buscar franquicia" style="margin:0"><button class="chip" id="fTodas" title="Ver todas las franquicias (limpia la búsqueda)">Todas</button><button class="chip limpiar" id="fLimp" title="Quitar la búsqueda">✕ Limpiar</button></div><div id="rTop"></div></div></section>
 <div class="foot"><span>Datos del datawarehouse (bronze/silver/gold) · estado y municipio INEGI · sin coordenadas de puntos de venta.</span><span>kinanalytics.com</span></div>
 </main>
 <div class="tt" id="tt"></div>
@@ -186,29 +191,40 @@ const D=__DATOS__,PAL=__SERIES__,T=D.tiendas,TC=T.col,TD=T.dic,NT=TC.pos_id.leng
 const CT={};TERRS.forEach((t,i)=>CT[t]=PAL[i%PAL.length]);           // territorio: amarillo, blanco…
 const CC={},DASH={};D.orden.forEach((c,i)=>{CC[c]=c==='Independientes'?PAL[2]:PAL[Math.min(i,3)];DASH[c]=(c==='Independientes'||i>3)?'5 4':''});
 const AYUDA={'Otras cadenas':'Otras cadenas: '+(D.otras||[]).join(', '),'Independientes':'Clientes del canal moderno que no son de una cadena (tiendas, minisúpers, farmacias, gimnasios…)'};
-const _st0={mFra:'Todas'};const st={..._st0,vistaR:'Juntos',vistaF:'Juntos',cad:new Set(D.foco.filter(c=>D.orden.includes(c))),tienda:true,tab:'Resumen',mMet:'n',mRes:7,tMet:'rev',tEsc:'val',sTop:'rev',orden:{}};
+const _st0={mFra:'Todas'};const st={..._st0,vistaR:'Juntos',vistaF:'Juntos',cad:new Set(D.foco.filter(c=>D.orden.includes(c))),tienda:false,tab:'Resumen',mMet:'n',mRes:7,tMet:'rev',tEsc:'val',sTop:'rev',orden:{}};
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function abr(v){const a=Math.abs(v);return a>=1e9?(v/1e9).toFixed(2)+'B':a>=1e6?(v/1e6).toFixed(1)+'M':a>=1e4?(v/1e3).toFixed(1)+'K':Math.round(v).toLocaleString('es-MX')}
 const fN=v=>v==null||!isFinite(v)?'—':Math.round(v).toLocaleString('es-MX'),f$=v=>v==null||!isFinite(v)?'—':'$'+abr(v),fP=(v,s)=>v==null||!isFinite(v)?'—':(s&&v>0?'+':'')+(v*100).toFixed(1)+'%';
 const tt=$('tt');function tip(e,h){tt.innerHTML=h;tt.style.display='block';const m=12,w=tt.offsetWidth,hh=tt.offsetHeight;let x=e.clientX+14,y=e.clientY+14;if(x+w>innerWidth-m)x=Math.max(m,e.clientX-14-w);if(y+hh>innerHeight-m)y=Math.max(m,e.clientY-14-hh);tt.style.left=x+'px';tt.style.top=y+'px'}function untip(){tt.style.display='none'}
-$('sub').textContent=TERRS.map(t=>{const m=D.meta[t],p=m.periodo;return `${t} (${m.embotellador}): ${p.desde}–${p.hasta} vs ${p.anterior_desde}–${p.anterior_hasta}`+(p.incompleto?` · ${p.incompleto} incompleto, fuera`:'')}).join(' · ');
+// periodo corto, una línea por ciudad: "Oct 2025 – Ago 2026 vs PY" (PY = mismos meses del año anterior)
+const MES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],fM=m=>`${MES[+String(m).slice(4,6)-1]} ${String(m).slice(0,4)}`;
+$('sub').innerHTML=TERRS.map(t=>{const m=D.meta[t],p=m.periodo;return `<div><b style="color:${CT[t]}">${esc(t)}</b> (${esc(m.embotellador)}): ${fM(p.desde)} – ${fM(p.hasta)} vs PY`+(p.incompleto?` · ${fM(p.incompleto)} incompleto, fuera`:'')+'</div>'}).join('');
+// crecimiento: verde si sube, rojo si baja, blanco si es 0
+const cG=v=>v==null||!isFinite(v)?'':Math.abs(v)<5e-4?'cero':v>0?'sube':'baja';
 
+// "✕ Limpiar": aparece solo cuando el filtro tiene algo elegido y lo devuelve a su estado inicial
+function limpiar(el,activo,cb){const b=document.createElement('button');b.className='chip limpiar';b.textContent='✕ Limpiar';b.title='Quitar la selección';b.style.display=activo?'':'none';b.onclick=cb;el.appendChild(b);return b}
 function seg(id,opts,key,cb){const el=$(id);el.innerHTML='';opts.forEach(([k,l])=>{const b=document.createElement('button');b.textContent=l;b.className=st[key]===k?'on':'';b.onclick=()=>{st[key]=k;(cb||render)()};el.appendChild(b)})}
-(function(){const el=$('fCad');D.orden.forEach(c=>{const b=document.createElement('button');b.className='chip'+(st.cad.has(c)?' on':'');b.innerHTML=`<i style="background:${CC[c]}"></i>${esc(c)}`;b.title=AYUDA[c]||c;
- b.onclick=()=>{st.cad.has(c)?st.cad.delete(c):st.cad.add(c);if(!st.cad.size)st.cad.add(c);b.classList.toggle('on',st.cad.has(c));render()};el.appendChild(b)})})();
-// siempre solo tiendas (sin comedores, oficinas, CEDIS ni vending); el filtro no se muestra al usuario
-['Resumen','Mapa','Tendencias','Productos','Franquicias'].forEach(t=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>{st.tab=t;render()};$('tabs').appendChild(b)});
+(function(){const el=$('fCad'),todas=D.orden.filter(c=>c!=='Independientes'),ini=[...st.cad],bs={},bt=document.createElement('button');let bl;
+ const pintar=()=>{for(const c in bs)bs[c].classList.toggle('on',st.cad.has(c));bt.classList.toggle('on',st.cad.size===todas.length&&todas.every(c=>st.cad.has(c)));if(bl)bl.style.display=st.cad.size===ini.length&&ini.every(c=>st.cad.has(c))?'none':''};
+ D.orden.forEach(c=>{const b=document.createElement('button');b.className='chip';b.innerHTML=`<i style="background:${CC[c]}"></i>${esc(c)}`;b.title=AYUDA[c]||c;
+  b.onclick=()=>{st.cad.has(c)?st.cad.delete(c):st.cad.add(c);if(!st.cad.size)st.cad.add(c);pintar();render()};bs[c]=b;el.appendChild(b)});
+ // "Todas": vuelve a todas las cadenas (limpia el filtro)
+ bt.className='chip';bt.textContent='Todas';bt.title='Ver todas las cadenas (limpia el filtro)';bt.onclick=()=>{st.cad=new Set(todas);st.mFra='Todas';pintar();render()};el.appendChild(bt);
+ bl=limpiar(el,false,()=>{st.cad=new Set(ini);st.mFra='Todas';pintar();render()});pintar()})();
+// se cuentan TODOS los PdV (tiendas, comedores, cajas, oficinas) para que todo cuadre con '# PdV'; el tipo de punto es detalle
+['Resumen','Mapa','Tendencias','Productos','Franquicias','Nunca compraron'].forEach(t=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>{st.tab=t;render()};$('tabs').appendChild(b)});
 const cads=()=>D.orden.filter(c=>st.cad.has(c));
 const okC=(cube,i,t)=>{const C=cube.col,Dd=cube.dic;return st.cad.has(Dd.cadena[C.cadena[i]])&&(!t||Dd.territorio[C.territorio[i]]===t)&&(!st.tienda||Dd.tipo_punto[C.tipo_punto[i]]==='Tienda')};
 
-function agg(t,key='cadena'){const A={},tot={n:0,comp:0,rev:0,revp:0,cj:0,ing:0,nIng:0,pot:0,vh:0,perd:0};
- for(let i=0;i<NT;i++){if(!okC(T,i,t))continue;const k=TD[key][TC[key][i]],a=A[k]||(A[k]={n:0,comp:0,rev:0,revp:0,cj:0,ing:0,nIng:0,pot:0,vh:0,perd:0});
+function agg(t,key='cadena'){const A={},tot={n:0,comp:0,rev:0,revp:0,cj:0,ing:0,nIng:0,pot:0,vh:0,perd:0,nun:0};
+ for(let i=0;i<NT;i++){if(!okC(T,i,t))continue;const k=TD[key][TC[key][i]],a=A[k]||(A[k]={n:0,comp:0,rev:0,revp:0,cj:0,ing:0,nIng:0,pot:0,vh:0,perd:0,nun:0}),es=TD.estatus[TC.estatus[i]];
   for(const x of [a,tot]){x.n++;x.comp+=TC.comp[i];x.rev+=TC.revenue_12m[i];x.revp+=TC.revenue_12m_anterior[i];x.cj+=TC.cajas_12m[i];x.pot+=TC.pot[i];
-   if(!TC.ing_nulo[i]){x.nIng++;x.ing+=TC.ing[i]}const p=TD.prioridad[TC.prioridad[i]];if(p==='Very High'||p==='High')x.vh++;if(TD.estatus[TC.estatus[i]].startsWith('Perdido'))x.perd++}}
+   if(!TC.ing_nulo[i]){x.nIng++;x.ing+=TC.ing[i]}const p=TD.prioridad[TC.prioridad[i]];if(p==='Very High'||p==='High')x.vh++;if(es.startsWith('Perdido'))x.perd++;if(es.startsWith('Nunca'))x.nun++}}
  return [A,tot]}
 const IND=[['PdV',a=>a.n,fN],['% que compran',a=>a.comp/a.n,v=>fP(v)],['Revenue 12m',a=>a.rev,f$],['vs año anterior',a=>a.revp?a.rev/a.revp-1:null,v=>fP(v,1)],
  ['Revenue por tienda compradora',a=>a.comp?a.rev/a.comp:null,f$],['Precio por caja',a=>a.cj?a.rev/a.cj:null,f$]]
- .concat(D.comparable.ing?[['Venta del mes por tienda',a=>a.nIng?a.ing/a.nIng:null,f$]]:[]).concat(D.comparable.pot?[['Potencial (cajas/mes)',a=>a.pot||null,fN]]:[]);
+ .concat(D.comparable.ing?[['Venta del mes por tienda',a=>a.nIng?a.ing/a.nIng:null,f$]]:[]).concat(D.comparable.pot?[['Potencial (cajas/mes)',a=>a.pot||null,fN]]:[]).concat([['% nunca compró',a=>a.n?a.nun/a.n:null,v=>fP(v)]]);
 
 // ---------- gráficas ----------
 const esCero=t=>/^[+−-]?\$?0([.,]0+)?(%| pts)?$/.test(String(t).trim());
@@ -221,13 +237,13 @@ function barras(el,items,fmt,opt={}){items=items.filter(it=>!isFinite(it.v)||!es
  if(neg)s+=`<line x1="${x0}" x2="${x0}" y1="0" y2="${items.length*h+4}" stroke="#999EA6"/>`;el.innerHTML=s+'</svg>';
  el.querySelectorAll('rect').forEach(r=>{const it=items[r.dataset.j];r.onmousemove=e=>tip(e,it.tip||`<b>${esc(it.l)}</b><br>${fmt(it.v)}`);r.onmouseleave=untip})}
 // pares: un grupo (cadena, franquicia, marca…) y debajo una barra por territorio, siempre en el mismo orden y color
-function pares(el,grupos,val,fmt){grupos=grupos.filter(g=>TERRS.some(t=>{const v=val(g,t);return v!=null&&isFinite(v)&&!esCero(fmt(v))}));if(!grupos.length){el.innerHTML='<p class="sub">Sin datos que mostrar.</p>';return}const W=el.clientWidth||520,fila=12,gap=8,alto=g=>18+TERRS.length*(fila+3)+gap;
+function pares(el,grupos,val,fmt,det,cero){grupos=grupos.filter(g=>TERRS.some(t=>{const v=val(g,t);return v!=null&&isFinite(v)&&!esCero(fmt(v))}));if(!grupos.length){el.innerHTML='<p class="sub">Sin datos que mostrar.</p>';return}const W=el.clientWidth||520,fila=12,gap=8,alto=g=>18+TERRS.length*(fila+3)+gap;
  const vals=grupos.flatMap(g=>TERRS.map(t=>val(g,t))).filter(v=>v!=null&&isFinite(v)),neg=vals.some(v=>v<0),pos=vals.some(v=>v>0),max=Math.max(...vals.map(Math.abs),1e-9);
  const ancho=W-80,x0=!neg?0:!pos?ancho:ancho/2,k=(neg&&pos?ancho/2:ancho)/max;let y=0,s='';
  grupos.forEach(g=>{s+=`<text class="g" x="0" y="${y+12}">${esc(g)}</text>`;y+=18;
-  TERRS.forEach(t=>{const v=val(g,t),ok=v!=null&&isFinite(v),w=ok?Math.abs(v)*k:0,x=ok&&v<0?x0-w:x0;
-   s+=`<rect x="${x}" y="${y}" width="${Math.max(w,ok?2:0)}" height="${fila}" rx="3" fill="${CT[t]}"><title>${esc(g)} · ${esc(t)}: ${ok?fmt(v):'sin dato'}</title></rect>`+
-    `<text class="v" x="${ok&&v<0?x0+6:x+w+6}" y="${y+fila-2}">${ok?fmt(v):'—'}</text>`;y+=fila+3});y+=gap});
+  TERRS.forEach(t=>{const v0=val(g,t),c0=v0!=null&&isFinite(v0)&&esCero(fmt(v0)),v=c0?null:v0,ok=v!=null&&isFinite(v),w=ok?Math.abs(v)*k:0,x=ok&&v<0?x0-w:x0;
+   s+=`<rect x="${x}" y="${y}" width="${Math.max(w,ok?2:0)}" height="${fila}" rx="3" fill="${CT[t]}"><title>${esc(g)} · ${esc(t)}: ${ok?fmt(v):'sin dato'}${ok&&det?' · '+det(g,t):''}</title></rect>`+
+    `<text class="v" x="${ok&&v<0?x0+6:x+w+6}" y="${y+fila-2}">${ok?fmt(v):c0?(cero||''):'—'}</text>`;y+=fila+3});y+=gap});
  if(neg)s+=`<line x1="${x0}" x2="${x0}" y1="18" y2="${y}" stroke="#999EA6"/>`;el.innerHTML=`<svg width="${W}" height="${y}">${s}</svg>`}
 const leyT=()=>`<div class="leg">${TERRS.map(t=>`<span><i style="background:${CT[t]}"></i>${esc(t)} · ${esc(D.meta[t].embotellador)}</span>`).join('')}</div>`;
 function lineas(el,meses,series,fmt){const W=el.clientWidth||900,H=300,m={l:64,r:16,t:10,b:28},w=W-m.l-m.r,h=H-m.t-m.b,max=Math.max(...series.flatMap(s=>s.vals).filter(isFinite),1e-9);
@@ -249,14 +265,18 @@ const tit=t=>`<div class="terr"><i style="background:${CT[t]}"></i>${esc(t)} <sp
 
 // ---------- Resumen ----------
 function resumen(){const el=$('rRes');const R={};TERRS.forEach(t=>R[t]=agg(t));const J=agg(null);
- const kp=(tot)=>IND.filter(([l,f])=>f(tot)!=null).slice(0,7).map(([l,f,fm],i)=>`<div class="kpi${i===2||i===7?' ac':''}"><div class="v">${fm(f(tot))}</div><div class="l">${l}</div></div>`).join('');
- // insights automáticos (cortos)
+ const kp=(tot)=>IND.filter(([l,f])=>l!=='% nunca compró'&&f(tot)!=null).slice(0,7).map(([l,f,fm],i)=>`<div class="kpi${i===2?' ac':''}"><div class="v ${l==='vs año anterior'?cG(f(tot)):''}">${fm(f(tot))}</div><div class="l">${l}</div></div>`).join('')+
+  (tot.n?`<div class="kpi"><div class="v">${fN(tot.nun)}</div><div class="l">nunca compraron ${esc(D.analisis)} · ${fP(tot.nun/tot.n)} de los PdV</div></div>`:'');
+ // insights automáticos (cortos), una fila por ciudad
  const [a,b]=TERRS,A=R[a][1],B=R[b][1],ins=[];
- if(A.n&&B.n){const r=B.n/A.n;ins.push([`${r>=1?r.toFixed(1)+'×':(1/r).toFixed(1)+'×'}`,`${r>=1?b:a} tiene más PdV que ${r>=1?a:b}`]);
-  ins.push([`${fP(A.comp/A.n)} · ${fP(B.comp/B.n)}`,`compran ${D.analisis} en ${a} y ${b}`]);
-  ins.push([`${f$(A.comp?A.rev/A.comp:0)} · ${f$(B.comp?B.rev/B.comp:0)}`,`revenue 12m por tienda compradora`]);
-  ins.push([`${fP(A.revp?A.rev/A.revp-1:null,1)} · ${fP(B.revp?B.rev/B.revp-1:null,1)}`,`vs año anterior (${a} · ${b})`])}
- let h=`<div class="insights">${ins.map(([x,y])=>`<div class="ins"><b>${x}</b>${esc(y)}</div>`).join('')}</div>`;
+ const fil=(f,fm,cl)=>TERRS.map(t=>{const v=f(R[t][1]);return `<div class="fl"><span><i style="background:${CT[t]}"></i>${esc(t)}</span><b class="${cl?cl(v):''}">${fm(v)}</b></div>`}).join('');
+ if(A.n&&B.n){const r=B.n/A.n;ins.push(`<b>${(r>=1?r:1/r).toFixed(1)}×</b>${esc(r>=1?b:a)} tiene más PdV que ${esc(r>=1?a:b)}`);
+  ins.push(`<span class="lb">Compran ${esc(D.analisis)}</span>`+fil(x=>x.comp/x.n,v=>fP(v)));
+  ins.push(`<span class="lb">Revenue 12m por tienda compradora</span>`+fil(x=>x.comp?x.rev/x.comp:null,f$));
+  ins.push(`<span class="lb">Revenue vs año anterior</span>`+fil(x=>x.revp?x.rev/x.revp-1:null,v=>fP(v,1),cG));
+  ins.push(`<span class="lb">Nunca compraron ${esc(D.analisis)}</span>`+fil(x=>x,x=>`<span style="font-size:15px">${fN(x.nun)} de ${fN(x.n)} · ${fP(x.n?x.nun/x.n:null)}</span>`)+
+   `<button class="ir" onclick="st.tab='Nunca compraron';render()">Ver dónde están →</button>`)}
+ let h=`<div class="insights">${ins.map(x=>`<div class="ins">${x}</div>`).join('')}</div>`;
  if(st.vistaR==='Juntos'){h+=`<div class="kpis">${kp(J[1])}</div><div class="grid g2" style="margin-top:14px">
    <div class="card"><h2>Cara a cara</h2><div class="leg">${TERRS.map(t=>`<span><i style="background:${CT[t]}"></i>${esc(t)}</span>`).join('')}</div><div id="cara"></div></div>
    <div class="card"><h2>Por cadena</h2><div class="seg" id="rMet" style="margin-bottom:8px"></div>${leyT()}<div id="rCad"></div></div></div>`;el.innerHTML=h;
@@ -299,8 +319,8 @@ function graficasGrupo(){
 const MAPS={};const RAMPA=['#D4D5D6','#999EA6','#222326','#141417','#E5FF01'];
 function mapa(){const F2C={};for(let j=0;j<NT;j++)F2C[TD.franquicia[TC.franquicia[j]]]=TD.cadena[TC.cadena[j]];
  const cuenta={};for(let j=0;j<NT;j++){if(!okC(T,j))continue;const f=TD.franquicia[TC.franquicia[j]];cuenta[f]=(cuenta[f]||0)+1}
- const fr=['Todas',...Object.keys(cuenta).sort((a,b)=>cuenta[b]-cuenta[a])];if(!fr.includes(st.mFra))st.mFra='Todas';
- seg('mFra',fr.map(f=>[f,f==='Todas'?'Todas':`${f} · ${fN(cuenta[f])}`]),'mFra',mapa);
+ const fr=[...Object.keys(cuenta).sort((a,b)=>cuenta[b]-cuenta[a]),'Todas'];if(!fr.includes(st.mFra))st.mFra='Todas';   // "Todas" al final, como en el filtro de cadenas
+ seg('mFra',fr.map(f=>[f,f==='Todas'?'Todas':`${f} · ${fN(cuenta[f])}`]),'mFra',mapa);limpiar($('mFra'),st.mFra!=='Todas',()=>{st.mFra='Todas';mapa()});
  const cont=$('maps');if(!cont.dataset.ok){cont.innerHTML=TERRS.map((t,i)=>`<div>${tit(t)}<div class="mk" id="mk${i}"></div><div class="mapa" id="mp${i}"></div><div class="tops" id="mt${i}"></div></div>`).join('');cont.dataset.ok=1}
  const X=D.pxf;
  TERRS.forEach((t,i)=>{const P=[];for(let j=0;j<NT;j++){if(!okC(T,j,t)||!TC.celda[j])continue;const f=TD.franquicia[TC.franquicia[j]];if(st.mFra!=='Todas'&&f!==st.mFra)continue;
@@ -310,9 +330,9 @@ function mapa(){const F2C={};for(let j=0;j<NT;j++)F2C[TD.franquicia[TC.franquici
   const tp=X.filas.filter(r=>r.territorio===t&&(st.mFra==='Todas'||r.franquicia===st.mFra)).reduce((o,r)=>(o[r.producto]=(o[r.producto]||0)+r.rev,o),{});
   const top=Object.entries(tp).sort((x,y)=>y[1]-x[1])[0],sinVenta=P.length&&!P.some(p=>p.rev>0),A=D.analisis.charAt(0).toUpperCase()+D.analisis.slice(1);
   if(!P.length){$('mk'+i).innerHTML=`<div style="grid-column:span 3;border:1px solid var(--g3)"><b style="font-size:14px;color:var(--g2)">${esc(st.mFra)} no tiene tiendas en ${esc(t)}</b><span>Elige otra cadena o “Todas”.</span></div>`}
-  else if(sinVenta){$('mk'+i).innerHTML=`<div><b>${fN(a.n)}</b><span>Tiendas</span></div><div style="grid-column:span 2;border:1px solid var(--g3)"><b style="font-size:14px;color:var(--g2)">Sin venta de ${esc(A)} en los datos</b><span>${esc(st.mFra==='Todas'?'Estas tiendas':st.mFra)} no tiene compras de ${esc(D.analisis)} en las ventas NSR de ${esc(D.meta[t].embotellador)}</span></div>`}
-  else $('mk'+i).innerHTML=[['Tiendas',fN(a.n)],['Compran '+D.analisis,a.n?fP(a.comp/a.n):'—'],['Revenue 12m',f$(a.rev),1],['vs año anterior',fP(a.revp?a.rev/a.revp-1:null,1)],['Revenue por tienda compradora',f$(a.comp?a.rev/a.comp:null)],
-   ['Producto top',top?esc(top[0].length>22?top[0].slice(0,21)+'…':top[0]):'—']].map(([l,v,ac])=>`<div class="${ac?'ac':''}" title="${l==='Producto top'&&top?esc(top[0]):''}"><b style="${l==='Producto top'?'font-size:13px':''}">${v}</b><span>${l}</span></div>`).join('');
+  else if(sinVenta){$('mk'+i).innerHTML=`<div><b>${fN(a.n)}</b><span>PdV</span></div><div style="grid-column:span 2;border:1px solid var(--g3)"><b style="font-size:14px;color:var(--g2)">Sin venta de ${esc(A)} en los datos</b><span>${esc(st.mFra==='Todas'?'Estas tiendas':st.mFra)} no tiene compras de ${esc(D.analisis)} en las ventas NSR de ${esc(D.meta[t].embotellador)}</span></div>`}
+  else $('mk'+i).innerHTML=[['PdV',fN(a.n)],['Compran '+D.analisis,a.n?fP(a.comp/a.n):'—'],['Revenue 12m',f$(a.rev),1],['vs año anterior',fP(a.revp?a.rev/a.revp-1:null,1)],['Revenue por tienda compradora',f$(a.comp?a.rev/a.comp:null)],
+   ['Producto top',top?esc(top[0].length>22?top[0].slice(0,21)+'…':top[0]):'—']].map(([l,v,ac])=>`<div class="${ac?'ac':''}" title="${l==='Producto top'&&top?esc(top[0]):''}"><b class="${l==='vs año anterior'?cG(a.revp?a.rev/a.revp-1:null):''}" style="${l==='Producto top'?'font-size:13px':''}">${v}</b><span>${l}</span></div>`).join('');
   // mapa
   let M=MAPS[t];if(!M){const map=L.map('mp'+i,{preferCanvas:true,minZoom:3,maxZoom:18}).setView([21,-94],5);M=MAPS[t]={map,capa:L.layerGroup().addTo(map),gl:null,mk:{}}}
   M.map.stop();M.capa.clearLayers();M.mk={};const revs=P.map(p=>p.rev).filter(v=>v>0).sort((x,y)=>x-y),q=k=>revs[Math.floor(k*(revs.length-1))]||0,cortes=[.2,.4,.6,.8].map(q),mx=revs[revs.length-1]||1;
@@ -329,6 +349,47 @@ function mapa(){const F2C={};for(let j=0;j<NT;j++)F2C[TD.franquicia[TC.franquici
    `<small style="color:#fff;font-weight:600">${esc(p.nom)}</small><small>Sin venta de ${esc(D.analisis)}</small>`)+`<small>${esc(p.f)} · ${esc(p.mun)}</small></button>`).join('');
   $('mt'+i).querySelectorAll('.tc').forEach(b=>b.onclick=()=>{const m=M.mk[b.dataset.j];if(!m||!M.map.getContainer().offsetWidth)return;
    M.map.stop();M.map.flyTo(m.getLatLng(),16,{duration:.8});M.map.once('moveend',()=>{if(M.capa.hasLayer(m))m.openTooltip()})})})}
+// ---------- Nunca compraron ----------
+// Tiendas sin ninguna compra del análisis en los 24 meses de ventas: dónde están, de qué franquicia, qué % de su franquicia
+// y una oportunidad de REFERENCIA (si compraran como el promedio de las que sí compran de su franquicia en su ciudad)
+const MN={};
+function nunca(){
+ const el=$('rNun'),F={},T2={};TERRS.forEach(t=>{F[t]={};T2[t]={n:0,nun:0,ref:0,mun:{},fmt:{},lst:[],P:[]}});
+ for(let j=0;j<NT;j++){if(!okC(T,j))continue;const t=TD.territorio[TC.territorio[j]],f=TD.franquicia[TC.franquicia[j]],x=(F[t][f]=F[t][f]||{n:0,nun:0,comp:0,rev:0,mun:{}}),nun=TD.estatus[TC.estatus[j]].startsWith('Nunca');
+  x.n++;T2[t].n++;if(TC.comp[j]){x.comp++;x.rev+=TC.revenue_12m[j]}
+  const p={j,f,nom:TC.nombre[j],mun:TD.municipio[TC.municipio[j]],fo:TD.formato[TC.formato[j]],nun,ll:TC.celda[j]?h3.cellToLatLng(TC.celda[j]):null};T2[t].P.push(p);
+  if(nun){x.nun++;T2[t].nun++;x.mun[p.mun]=(x.mun[p.mun]||0)+1;T2[t].mun[p.mun]=(T2[t].mun[p.mun]||0)+1;T2[t].fmt[p.fo]=(T2[t].fmt[p.fo]||0)+1;T2[t].lst.push(p)}}
+ TERRS.forEach(t=>{for(const f in F[t]){const x=F[t][f];x.ref=x.comp?x.nun*x.rev/x.comp:null;T2[t].ref+=x.ref||0}});
+ const top=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]);
+ const fr=[...new Set(TERRS.flatMap(t=>Object.keys(F[t])))].filter(f=>TERRS.some(t=>F[t][f]&&F[t][f].nun>0)).sort((a,b)=>TERRS.reduce((s,t)=>s+(F[t][b]?.nun||0),0)-TERRS.reduce((s,t)=>s+(F[t][a]?.nun||0),0));
+ // hook por ciudad
+ const ins=TERRS.map(t=>{const a=T2[t],peor=Object.entries(F[t]).filter(([f,x])=>x.n>=5&&x.nun&&x.comp).sort((p,q)=>q[1].nun/q[1].n-p[1].nun/p[1].n)[0],
+   cero=Object.entries(F[t]).filter(([f,x])=>x.n&&!x.comp).map(([f,x])=>`${f} (${fN(x.n)})`);
+  return `<div class="ins"><b>${fN(a.nun)} de ${fN(a.n)} · ${fP(a.n?a.nun/a.n:null)}</b>PdV de ${esc(t)} nunca compraron ${esc(D.analisis)}`+(peor?`<br>Más alto: ${esc(peor[0])} (${fN(peor[1].nun)} de ${fN(peor[1].n)}, ${fP(peor[1].nun/peor[1].n)})`:'')+
+   (a.ref?`<br>Referencia: ${f$(a.ref)} al año si compraran como el promedio de su franquicia`:'')+
+   (cero.length?`<br>Sin ninguna compra en NSR: ${esc(cero.join(', '))} — POR VERIFICAR si compran por otro canal`:'')+`</div>`}).join('');
+ if(!el.dataset.ok){el.dataset.ok=1;el.innerHTML=`<div class="insights" id="nIns"></div>
+  <div class="grid g2"><div class="card"><h2>% de los PdV de cada franquicia que nunca compró</h2>${leyT()}<div id="nPct"></div></div>
+  <div class="card"><h2>Oportunidad de referencia por franquicia (revenue 12m)</h2><p class="sub" style="margin:0 0 8px">Si cada tienda que nunca compró vendiera como el promedio de las que sí compran de su franquicia en su ciudad. Referencia, no predicción.</p>${leyT()}<div id="nRef"></div></div></div>
+  <div class="maps dos" style="margin-top:14px">${TERRS.map((t,i)=>`<div>${tit(t)}<div class="mk" id="nk${i}"></div><div class="mapa" id="nm${i}"></div></div>`).join('')}</div>
+  <p class="sub" style="margin-top:8px">Amarillo = nunca compró · gris = sí compra (contexto). Cada punto en el centro de su celda de ~70 m.</p>
+  <div class="grid g2" style="margin-top:14px">${TERRS.map((t,i)=>`<div class="card">${tit(t)}<div id="nTab${i}"></div><h2 style="margin-top:14px">PdV que nunca compraron</h2><div id="nLst${i}"></div></div>`).join('')}</div>`;}
+ $('nIns').innerHTML=ins;
+ pares($('nPct'),fr,(f,t)=>F[t][f]?F[t][f].nun/F[t][f].n:null,v=>fP(v),(f,t)=>`${fN(F[t][f].nun)} de ${fN(F[t][f].n)} PdV`,'todas compran');
+ pares($('nRef'),fr,(f,t)=>F[t][f]?.ref||null,f$,(f,t)=>`${fN(F[t][f].nun)} tiendas × ${f$(F[t][f].rev/F[t][f].comp)} promedio`);
+ TERRS.forEach((t,i)=>{const a=T2[t],tm=top(a.mun).slice(0,3),tf=top(a.fmt)[0];
+  $('nk'+i).innerHTML=[['Nunca compraron',fN(a.nun),1],['% de sus PdV',fP(a.n?a.nun/a.n:null)],['Referencia 12m',a.ref?f$(a.ref):'—'],
+   ...tm.slice(0,2).map((m,k)=>[tm.length>1?`Municipio #${k+1}`:'Municipio',`${esc(m[0])} (${fN(m[1])})`]),...(tf?[['Formato más común',`${esc(tf[0])} (${fN(tf[1])})`]]:[])]
+   .map(([l,v,ac])=>`<div class="${ac?'ac':''}"><b style="${l.startsWith('Municipio')||l.startsWith('Formato')?'font-size:13px':''}">${v}</b><span>${l}</span></div>`).join('');
+  let M=MN[t];if(!M){const map=L.map('nm'+i,{preferCanvas:true,minZoom:3,maxZoom:18}).setView([21,-94],5);M=MN[t]={map,capa:L.layerGroup().addTo(map),gl:null}}
+  M.map.stop();M.capa.clearLayers();
+  a.P.filter(p=>p.ll).sort((x,y)=>x.nun-y.nun).forEach(p=>L.circleMarker(p.ll,{radius:p.nun?6:3,color:'#141417',weight:1,fillColor:p.nun?'#E5FF01':'#999EA6',fillOpacity:p.nun?.95:.55})
+   .bindTooltip(`<b>${esc(p.nom)}</b><br>${esc(p.f)} · ${esc(p.mun)}<br>${p.nun?'Nunca compró '+esc(D.analisis):'Sí compra'}`,{sticky:true}).addTo(M.capa));
+  M.lim=a.lst.filter(p=>p.ll).map(p=>p.ll);if(!M.lim.length)M.lim=a.P.filter(p=>p.ll).map(p=>p.ll);setTimeout(()=>encuadrar(M),60);
+  tabla($('nTab'+i),[{k:'f',l:'Franquicia',t:1,h:r=>dot(r.f)},{k:'n',l:'PdV',f:fN},{k:'nun',l:'Nunca compraron',f:fN},{k:'pct',l:'% de su franquicia',f:v=>fP(v)},
+   {k:'mun',l:'Dónde (municipios)',t:1},{k:'ref',l:'Referencia 12m',f:f$}],
+   Object.entries(F[t]).filter(([f,x])=>x.nun>0).map(([f,x])=>({f,n:x.n,nun:x.nun,pct:x.nun/x.n,ref:x.ref,mun:top(x.mun).slice(0,3).map(([m,c])=>`${m} (${c})`).join(', ')})),{orden:{k:'nun',d:true},id:'nTab'+i});
+  tabla($('nLst'+i),[{k:'nom',l:'Tienda',t:1},{k:'f',l:'Franquicia',h:r=>dot(r.f)},{k:'fo',l:'Formato',t:1},{k:'mun',l:'Municipio',t:1}],a.lst,{orden:{k:'f',d:false},lim:200,id:'nLst'+i})})}
 function encuadrar(M){const el=M.map.getContainer();if(!el.offsetWidth||!el.offsetHeight)return;   // oculto: se hará al volver a la pestaña
  M.map.invalidateSize({animate:false});if(M.lim&&M.lim.length)M.map.fitBounds(L.latLngBounds(M.lim),{padding:[24,24],maxZoom:14,animate:false});
  if(!M.gl)M.gl=L.maplibreGL({style:'https://tiles.openfreemap.org/styles/positron',attribution:'© OpenFreeMap © OpenMapTiles © OpenStreetMap'}).addTo(M.map)}
@@ -340,11 +401,14 @@ function tendencias(){const M=D.mensual,C=M.col,meses=[...M.dic.month_445].sort(
   const x=(((S[t]=S[t]||{})[f]=S[t][f]||{})[mm]=S[t][f][mm]||{rev:0,cj:0,pdv:0});x.rev+=C.rev[i];x.cj+=C.cj[i];x.pdv+=C.pdv[i]}
  const tot={};TERRS.forEach(t=>{for(const f in S[t]||{})for(const mm in S[t][f])tot[f]=(tot[f]||0)+S[t][f][mm].rev});
  const fr=Object.keys(tot).sort((a,b)=>tot[b]-tot[a]);
- if(!st.tFra)st.tFra=new Set(fr.slice(0,4));[...st.tFra].forEach(f=>{if(!fr.includes(f))st.tFra.delete(f)});if(!st.tFra.size&&fr.length)st.tFra.add(fr[0]);
+ const ini=fr.slice(0,4);if(!st.tFra)st.tFra=new Set(ini);[...st.tFra].forEach(f=>{if(!fr.includes(f))st.tFra.delete(f)});if(!st.tFra.size&&fr.length)st.tFra.add(fr[0]);
  const FC={},FD={};fr.forEach((f,k)=>{FC[f]=PAL[k%4];FD[f]=['','6 4','2 3'][Math.floor(k/4)%3]});
  $('tFra').innerHTML='';fr.forEach(f=>{const b=document.createElement('button');b.className='chip'+(st.tFra.has(f)?' on':'');
   b.innerHTML=`<svg width="18" height="8"><line x1="0" y1="4" x2="18" y2="4" stroke="${FC[f]}" stroke-width="2.5" stroke-dasharray="${FD[f]}"/></svg>${esc(f)}`;
   b.onclick=()=>{st.tFra.has(f)?st.tFra.delete(f):st.tFra.add(f);if(!st.tFra.size)st.tFra.add(f);tendencias()};$('tFra').appendChild(b)});
+ {const b=document.createElement('button');b.className='chip'+(fr.every(f=>st.tFra.has(f))?' on':'');b.textContent='Todas';b.title='Ver todas las franquicias (limpia el filtro)';
+  b.onclick=()=>{st.tFra=new Set(fr);tendencias()};$('tFra').appendChild(b)}
+ limpiar($('tFra'),!(st.tFra.size===ini.length&&ini.every(f=>st.tFra.has(f))),()=>{st.tFra=new Set(ini);tendencias()});
  const val=x=>!x?null:st.tMet==='ppc'?(x.cj?x.rev/x.cj:null):x[st.tMet];let fm=st.tMet==='rev'||st.tMet==='ppc'?f$:fN;if(st.tEsc==='idx')fm=v=>Math.round(v)+'';
  $('tLin').innerHTML=TERRS.map((t,i)=>`<div>${tit(t)}<div id="tL${i}"></div></div>`).join('');
  TERRS.forEach((t,i)=>{let ser=fr.filter(f=>st.tFra.has(f)&&(S[t]||{})[f]).map(f=>({l:f,c:FC[f],d:FD[f],vals:meses.map(mm=>mm>D.meta[t].periodo.ultimo_completo?null:val(S[t][f][mm]))}));
@@ -381,33 +445,36 @@ function productos(){const P=D.productos,C=P.col,el=$('rProd'),X=D.pxf,den=X.den
  pares($('pSegC'),segs.filter(g=>TERRS.every(t=>S[t][g])),(g,t)=>{const x=S[t][g];return x&&x.revp?x.rev/x.revp-1:null},v=>fP(v,1));
  TERRS.forEach((t,i)=>{const o=sum(t,'Descripción'),tot=Object.values(o).reduce((a,x)=>a+x.rev,0)||1;
   barras($('pTop'+i),Object.entries(o).sort((a,b)=>b[1].rev-a[1].rev).slice(0,10).map(([k,x])=>({l:corto(k),v:x.rev,c:CT[t],
-   tip:`<b>${esc(k)}</b><br>${f$(x.rev)} · ${fP(x.rev/tot)} de ${esc(t)}<br>${fN(x.pdv)} tiendas · vs año ant. ${fP(x.revp?x.rev/x.revp-1:null,1)}`})),f$,{lw:240,h:24})});
+   tip:`<b>${esc(k)}</b><br>${f$(x.rev)} · ${fP(x.rev/tot)} de ${esc(t)}<br>${fN(x.pdv)} PdV · vs año ant. ${fP(x.revp?x.rev/x.revp-1:null,1)}`})),f$,{lw:240,h:24})});
  const F2C={};for(let j=0;j<NT;j++)F2C[TD.franquicia[TC.franquicia[j]]]=TD.cadena[TC.cadena[j]];
  const fr=[...new Set(Object.keys(den).map(k=>k.split('|')[1]))].filter(f=>st.cad.has(F2C[f])).sort((a,b)=>TERRS.reduce((s,t)=>s+(den[t+'|'+b]||0),0)-TERRS.reduce((s,t)=>s+(den[t+'|'+a]||0),0));
- if(!fr.includes(st.pFra))st.pFra=fr[0];seg('pFra',fr.map(f=>[f,f]),'pFra',productos);
+ if(!fr.includes(st.pFra))st.pFra='Todas';seg('pFra',[...fr.map(f=>[f,f]),['Todas','Todas']],'pFra',productos);limpiar($('pFra'),st.pFra!=='Todas',()=>{st.pFra='Todas';productos()});
+ // "Todas": las franquicias del filtro sumadas por producto
+ const filas=(t)=>{if(st.pFra!=='Todas')return X.filas.filter(r=>r.franquicia===st.pFra&&r.territorio===t&&r.rev>0);
+  const o={};X.filas.forEach(r=>{if(r.territorio!==t||!fr.includes(r.franquicia)||!(r.rev>0))return;const x=o[r.producto]=o[r.producto]||{producto:r.producto,rev:0,n:0};x.rev+=r.rev;x.n+=r.n});return Object.values(o)},nomF=st.pFra==='Todas'?'todas las franquicias':st.pFra;
  // mezcla: cada producto como % del revenue de la franquicia en la ciudad (suma 100%; lo que no entra en el top va a "Otros productos")
- TERRS.forEach((t,i)=>{const n=den[t+'|'+st.pFra]||0,R=X.filas.filter(r=>r.franquicia===st.pFra&&r.territorio===t&&r.rev>0).sort((a,b)=>b.rev-a.rev),tot=R.reduce((a,r)=>a+r.rev,0);
-  if(!n){$('pFx'+i).innerHTML=`<p class="sub">${esc(st.pFra)} no tiene tiendas en ${esc(t)}.</p>`;return}
-  if(!tot){$('pFx'+i).innerHTML=`<p class="sub">${fN(n)} tiendas de ${esc(st.pFra)} en ${esc(t)}: sin venta de ${esc(D.analisis)} en los datos (ventas NSR).</p>`;return}
+ TERRS.forEach((t,i)=>{const n=st.pFra==='Todas'?fr.reduce((a,f)=>a+(den[t+'|'+f]||0),0):den[t+'|'+st.pFra]||0,R=filas(t).sort((a,b)=>b.rev-a.rev),tot=R.reduce((a,r)=>a+r.rev,0);
+  if(!n){$('pFx'+i).innerHTML=`<p class="sub">${esc(nomF)} no tiene tiendas en ${esc(t)}.</p>`;return}
+  if(!tot){$('pFx'+i).innerHTML=`<p class="sub">${fN(n)} tiendas de ${esc(nomF)} en ${esc(t)}: sin venta de ${esc(D.analisis)} en los datos (ventas NSR).</p>`;return}
   // solo entran al top los productos de hydration con al menos 1% del revenue de la cadena; los demás se avisan aparte
   const bajo=R.filter(r=>r.rev/tot<0.01),pctBajo=bajo.reduce((a,r)=>a+r.rev,0)/tot;R.splice(0,R.length,...R.filter(r=>r.rev/tot>=0.01));
   const lista=xs=>'<table style="margin-top:4px;font-size:11.5px">'+xs.map(r=>`<tr><td style="padding:1px 8px 1px 0;text-align:left;white-space:normal">${esc(r.producto)}</td><td style="padding:1px 6px;text-align:right">${r.rev/tot<0.001?'&lt;0.1%':fP(r.rev/tot)}</td><td style="padding:1px 0;text-align:right">${f$(r.rev)}</td></tr>`).join('')+'</table>';
   const top=R.slice(0,8),resto=R.slice(8).reduce((a,r)=>a+r.rev,0),items=top.map(r=>({l:corto(r.producto),v:r.rev/tot,c:CT[t],tip:`<b>${esc(r.producto)}</b><br>${fP(r.rev/tot)} del revenue · ${f$(r.rev)}<br>lo compran ${fN(r.n)} de ${fN(n)} tiendas`}));
   if(resto>0)items.push({l:`Resto de ${D.analisis} (${R.length-8} productos)`,v:resto/tot,c:PAL[2],tip:`<b>${R.length-8} productos de ${esc(D.analisis)} fuera del top 8</b> (cada uno ≥ 1%) · ${fP(resto/tot)} · ${f$(resto)}`+lista(R.slice(8))});
   barras($('pFx'+i),items,v=>fP(v),{lw:240,h:24,max:Math.max(...items.map(x=>x.v))});
-  $('pFx'+i).insertAdjacentHTML('afterbegin',`<p class="sub" style="margin:0 0 6px">${f$(tot)} de revenue 12m · ${fN(n)} tiendas de ${esc(st.pFra)} · ${R.length+bajo.length} productos de ${esc(D.analisis)}</p>`);
-  if(bajo.length){$('pFx'+i).insertAdjacentHTML('beforeend',`<p class="sub aviso" style="margin:8px 0 0;cursor:help;text-decoration:underline dotted">ⓘ Hay ${bajo.length} producto${bajo.length>1?'s':''} más de ${esc(D.analisis)} que no llega${bajo.length>1?'n':''} al 1% del revenue de ${esc(st.pFra)} (suman ${pctBajo<0.001?'menos de 0.1%':fP(pctBajo)}): no entra${bajo.length>1?'n':''} en el top.</p>`);
+  $('pFx'+i).insertAdjacentHTML('afterbegin',`<p class="sub" style="margin:0 0 6px">${f$(tot)} de revenue 12m · ${fN(n)} tiendas de ${esc(nomF)} · ${R.length+bajo.length} productos de ${esc(D.analisis)}</p>`);
+  if(bajo.length){$('pFx'+i).insertAdjacentHTML('beforeend',`<p class="sub aviso" style="margin:8px 0 0;cursor:help;text-decoration:underline dotted">ⓘ Hay ${bajo.length} producto${bajo.length>1?'s':''} más de ${esc(D.analisis)} que no llega${bajo.length>1?'n':''} al 1% del revenue de ${esc(nomF)} (suman ${pctBajo<0.001?'menos de 0.1%':fP(pctBajo)}): no entra${bajo.length>1?'n':''} en el top.</p>`);
    const av=$('pFx'+i).querySelector('.aviso'),bt=[...bajo].sort((a,b)=>b.rev-a.rev);
    av.onmousemove=e=>tip(e,`<b>${bt.length} producto${bt.length>1?'s':''} con menos de 1%</b> · ${pctBajo<0.001?'menos de 0.1%':fP(pctBajo)} · ${f$(bt.reduce((a,r)=>a+r.rev,0))}`+lista(bt));av.onmouseleave=untip}})}
 
 // ---------- Tiendas ----------
 function tiendas(){
  // Por franquicia (todas sus tiendas sumadas: todos los OXXO, todas las Bodega Aurrerá…), no tienda por tienda
- const q=($('buscar').value||'').toLowerCase(),el=$('rTop'),F={};
+ const q=($('buscar').value||'').toLowerCase(),el=$('rTop'),F={};$('fTodas').classList.toggle('on',!q);$('fLimp').style.display=q?'':'none';
  for(let j=0;j<NT;j++){if(!okC(T,j))continue;const f=TD.franquicia[TC.franquicia[j]];if(q&&!f.toLowerCase().includes(q))continue;const t=TD.territorio[TC.territorio[j]];
   const x=((F[f]=F[f]||{cadena:TD.cadena[TC.cadena[j]]})[t]=F[f][t]||{n:0,comp:0,rev:0,revp:0,cj:0});x.n++;x.comp+=TC.comp[j];x.rev+=TC.revenue_12m[j];x.revp+=TC.revenue_12m_anterior[j];x.cj+=TC.cajas_12m[j]}
  const fila=(f,x)=>({franq:f,cadena:F[f].cadena,n:x.n,pen:x.comp/x.n,rev:x.rev,delta:x.rev-x.revp,crec:x.revp?x.rev/x.revp-1:null,rpt:x.comp?x.rev/x.comp:null,cpt:x.comp?x.cj/x.comp:null});
- const cols=[{k:'franq',l:'Franquicia',t:1,h:r=>dot(r.franq)+(r.franq!==r.cadena?` <span class="sub">${esc(r.cadena)}</span>`:'')},{k:'n',l:'Tiendas',f:fN},{k:'pen',l:'% compran',f:v=>fP(v)},
+ const cols=[{k:'franq',l:'Franquicia',t:1,h:r=>dot(r.franq)+(r.franq!==r.cadena?` <span class="sub">${esc(r.cadena)}</span>`:'')},{k:'n',l:'PdV',f:fN},{k:'pen',l:'% compran',f:v=>fP(v)},
   {k:'rev',l:'Revenue 12m',f:f$},{k:'delta',l:'Δ vs año ant.',f:v=>`<span class="${v>=0?'pos':'negv'}">${f$(v)}</span>`},{k:'crec',l:'Crecimiento',f:cP},{k:'rpt',l:'Revenue / tienda compradora',f:f$},{k:'cpt',l:'Cajas / tienda compradora',f:fN}];
  const o=st.sTop==='caida'?{k:'delta',d:false}:{k:st.sTop,d:true};
  if(st.vistaF==='Juntos'){el.className='';el.innerHTML=`<h2 style="font:600 15px 'Space Grotesk';margin:0 0 8px">Franquicias cara a cara</h2>${leyT()}<div id="frPar"></div>`;
@@ -416,14 +483,15 @@ function tiendas(){
   pares($('frPar'),fr,(f,t)=>F[f][t]?met[0](F[f][t]):null,met[1])}
  else{el.className='grid g2';el.innerHTML=TERRS.map((t,i)=>`<div>${tit(t)}<div id="top${i}"></div></div>`).join('');
   TERRS.forEach((t,i)=>tabla($('top'+i),cols,Object.keys(F).filter(f=>F[f][t]).map(f=>fila(f,F[f][t])),{orden:o,id:'top'+i+st.sTop}))}}
-$('buscar').oninput=()=>render();
+$('buscar').oninput=()=>render();$('fTodas').onclick=$('fLimp').onclick=()=>{$('buscar').value='';render()};
 function render(){
  document.querySelectorAll('.tab').forEach(s=>s.classList.toggle('on',s.dataset.t===st.tab));document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.textContent===st.tab));
- if(st.tab==='Resumen'){seg('vistaR',[['Juntos','Juntos'],['Separados','Separados']],'vistaR');resumenTodo()}
+ if(st.tab==='Resumen'){seg('vistaR',[['Juntos','Territorio de operación'],['Separados','Por ciudad']],'vistaR');resumenTodo()}
  if(st.tab==='Mapa')mapa();
+ if(st.tab==='Nunca compraron')nunca();
  if(st.tab==='Tendencias'){seg('tMet',[['rev','Revenue'],['cj','Cajas'],['pdv','PdV compradores'],['ppc','Precio por caja']],'tMet');seg('tEsc',[['val','Valores'],['idx','Índice 100']],'tEsc');tendencias()}
  if(st.tab==='Productos')productos();
- if(st.tab==='Franquicias'){seg('vistaF',[['Juntos','Juntos'],['Separados','Separados']],'vistaF');seg('sTop',[['rev','Revenue 12m'],['crec','Crecimiento'],['delta','Más crece $'],['caida','Más cae $'],['rpt','Revenue por tienda'],['n','Tiendas']],'sTop');tiendas()}}
+ if(st.tab==='Franquicias'){seg('vistaF',[['Juntos','Territorio de operación'],['Separados','Por ciudad']],'vistaF');seg('sTop',[['rev','Revenue 12m'],['crec','Crecimiento'],['delta','Más crece $'],['caida','Más cae $'],['rpt','Revenue por tienda'],['n','Tiendas']],'sTop');tiendas()}}
 addEventListener('resize',()=>{if(st.tab!=='Mapa')render()});
 render();
 </script></body></html>"""

@@ -81,7 +81,8 @@ Identificadores (`pos_id`, `product_id`) siempre como texto.
 - **Franquicia por nombre**: el nombre del cliente trae la cadena con ruido ("O X X O", "WAL - MART", "SAM´S"); usar
   `cadenas.clasificar` (regex → nombre limpio → aproximado con alerta) y exclusiones en `src/config/cadenas.py`
   (KK WALMART, SUPER CENTRO, FARMA, COSCO).
-- **No son tiendas**: comedores, oficinas, CEDIS, vending (`TIPOS_PUNTO`): fuera de los conteos de tiendas.
+- **No son tiendas**: comedores, oficinas, CEDIS, vending (`TIPOS_PUNTO`): se marcan (tipo de punto + alerta) pero se
+  CUENTAN como PdV en todos los conteos, para que todo cuadre con "# PdV" (usuario, 2026-11-02).
 - **`.env`**: `AZURE_STORAGE_CONNECTION_STRING` con espacios alrededor del `=`; nunca imprimirla.
 - **Excel abierto** (Windows): no se puede sobrescribir; el código guarda una copia con la hora; luego borrar la copia.
 
