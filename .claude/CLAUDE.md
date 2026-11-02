@@ -37,6 +37,11 @@ Especificación: `SPEC.md`. Uso: `README.md`. Pruebas: `uv run python -m unittes
 6. **Marca Kin en todo lo visual**: fuentes embebidas, logo oficial desde archivo, paleta de la marca.
 7. **Sin commits** (los hace el usuario). Lo que el agente genera de más (copias con hora, temporales) se limpia.
 
+## Prompts listos
+
+`prompts/comparar-ciudades-cadenas.md`: comparar ciudades/embotelladores por cadena en un solo paso, sin código nuevo
+(una corrida de `cadenas` + QA por script). Para pedidos parecidos, partir de ahí.
+
 ## Mapa de skills
 
 | Necesito… | Skill |

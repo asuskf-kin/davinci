@@ -62,6 +62,9 @@ Abrir el repo en Claude Code y pedir, por ejemplo:
 - "Analiza las cadenas OXXO, Walmart y Costco" → skill `cadenas-retail`
 - "Compara Mérida de Bepensa con CDMX de Femsa en OXXO, Walmart y las demás cadenas" → `cadenas-retail` con territorios
 
+Prompts listos para reproducir un entregable sin refinamiento (solo se cambian los parámetros): [`prompts/`](prompts/).
+Comparar ciudades por cadena (y agregar otra ciudad): [`prompts/comparar-ciudades-cadenas.md`](prompts/comparar-ciudades-cadenas.md).
+
 ## Comandos (los corre el agente; también a mano)
 
 | Comando | Qué entrega |
