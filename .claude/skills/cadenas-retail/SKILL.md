@@ -59,3 +59,8 @@ tiene venta de hydration en las ventas NSR (compra directo). OXXO vende casi sol
 Contando todos los PdV (2,811: Mérida 575, CDMX 2,236), nunca compraron hydration 191 (6.8% en ambas ciudades: Mérida 39,
 CDMX 152); por cadena OXXO 12 (0.7%), Walmart 56 (40.6%), Otras cadenas 114 (13.3%), Costco 9 de 9 (100%, POR VERIFICAR
 otro canal; 7 tiendas + 1 comedor + 1 punto de cajas).
+
+## Pendiente conocido (no corregido, usuario 2026-11-02)
+
+Con un mes incompleto en un solo lado (Mérida 202609), su "Revenue 12m" suma 11 meses y el otro 12: el revenue por tienda
+compradora no es comparable entre ciudades (el crecimiento vs PY sí). Decírselo al usuario al presentar; no se corrigió.
